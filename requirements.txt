@@ -2,3 +2,7 @@ plumbum==1.6.7
 torch==1.0.0
 numpy
 scipy
+torchvision
+fs
+tqdm
+scikit-image

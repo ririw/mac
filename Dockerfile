@@ -1,7 +1,5 @@
-FROM python:3.6
+FROM ririw/mac-base
 
-RUN pip3 install plumbum torch nose
-RUN pip3 install nose numpy scipy flake8
 RUN mkdir /app
 RUN mkdir /data
 

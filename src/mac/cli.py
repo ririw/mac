@@ -1,3 +1,6 @@
+import fs.zipfs
+import fs.appfs
+from mac import inputs
 from plumbum import cli
 
 import torch
@@ -38,8 +41,19 @@ class Check(cli.Application):
         return 0
 
 
+@MAC.subcommand('preprocess')
+class Preprocess(cli.Application):
+    def main(self, clevr_fs):
+        out_fs = fs.appfs.UserCacheFS('mac')
+        zf = fs.zipfs.ZipFS(clevr_fs)
+        print('Need more space to do training...')
+        with zf.opendir('CLEVR_v1.0/images/test/') as te:
+            ds = inputs.CLEVRData(te)
+            inputs.image_preprocess('test', ds, out_fs)
+
+
 def main() -> None:
-    MAC.run(argv=['mac', 'check'])
+    MAC.run()
 
 
 if __name__ == '__main__':

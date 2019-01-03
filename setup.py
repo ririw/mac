@@ -11,14 +11,17 @@ with open('README.md') as readme_file:
 requirements = [
     'plumbum',
     'torch>=1.0.0',
+    'torchvision',
+    'fs',
+    'tqdm',
+    'scikit-image',
+    'numpy'
 ]
 
 setup_requirements = [ ]
 
 test_requirements = [
-    'pylint',
     'flake8',
-    'mypy',
 ]
 
 setup(
