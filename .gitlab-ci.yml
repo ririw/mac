@@ -1,7 +1,6 @@
 test:
-  image: python:3.6
+  image: registry.gitlab.com/ririw/mac/base
   script:
   - pip install -r requirements.txt
-  - pip install nose flake8
   - python setup.py develop
   - make

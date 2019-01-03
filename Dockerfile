@@ -1,4 +1,4 @@
-FROM ririw/mac-base
+FROM registry.gitlab.com/ririw/mac/base
 
 RUN mkdir /app
 RUN mkdir /data
