@@ -2,12 +2,12 @@ import torch
 from src.mac.cli import some_fn
 
 
-def test_simple():
+def test_simple() -> None:
     x = torch.ones(5, requires_grad=True)
 
     opt = torch.optim.LBFGS([x])
 
-    def err():
+    def err() -> torch.Tensor:
         opt.zero_grad()
         r = some_fn(x)
         r.backward()

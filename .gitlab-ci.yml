@@ -2,6 +2,6 @@ test:
   image: python:3.6
   script:
   - pip install -r requirements.txt
-  - pip install nose
-  - nosetests
-  - python src/mac/cli.py check
+  - pip install nose flake8
+  - python setup.py develop
+  - make

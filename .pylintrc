@@ -1,0 +1,15 @@
+[MASTER]
+extension-pkg-whitelist=numpy,nose,nose.tools,numpy.testing, pathlib.PurePath, pathlib.PosixPath, pathlib.Path
+
+[MESSAGES CONTROL]
+# disabled messages
+disable=invalid-name,missing-docstring,too-few-public-methods, protected-access, no-self-use, fixme, no-member, global-statement, duplicate-code
+
+[TYPECHECK]
+ignored-modules = numpy, numpy.testing
+ignored-classes = numpy, numpy.testing
+
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=80
