@@ -7,11 +7,12 @@ FROM python:3.6
 # would start to get a bit frustrating if you
 # had to re-download for every build and test
 # cycle.
-RUN pip3 install plumbum torch
+RUN pip3 install plumbum torch nose
+RUN pip3 install nose numpy scipy
 RUN mkdir /app
 RUN mkdir /data
 
 COPY . /app
 WORKDIR /app
 RUN python setup.py develop
-RUN
+RUN nosetests
