@@ -1,13 +1,13 @@
+import nose.tools
 import torch
 import torch.functional
 import torch.nn.functional
-from mac.mac_cell import RUCell, __debug__options__, WUCell
-import nose.tools
-import numpy as np
+
+from mac.mac_cell import WUCell
 
 
 def test_remember_everything():
-    batch_size, seq_len, ctrl_dim = 31, 11, 7
+    batch_size, ctrl_dim = 31, 7
 
     cell = WUCell(ctrl_dim)
     opt = torch.optim.Adam(cell.parameters())
@@ -29,7 +29,7 @@ def test_remember_everything():
 
 
 def test_remember_ri():
-    batch_size, seq_len, ctrl_dim = 31, 11, 7
+    batch_size, ctrl_dim = 31, 7
 
     cell = WUCell(ctrl_dim)
     opt = torch.optim.Adam(cell.parameters())
