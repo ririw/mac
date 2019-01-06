@@ -138,6 +138,24 @@ class WUCell(torch.nn.Module):
         return m_next
 
 
+class OutputCell(torch.nn.Module):
+    def __init__(self, ctrl_dim, out_dim=28):
+        super().__init__()
+        self.ctrl_dim = ctrl_dim
+        self.layers = torch.nn.Sequential(
+            torch.nn.Linear(ctrl_dim * 2, ctrl_dim),
+            torch.nn.PReLU(),
+            torch.nn.Linear(ctrl_dim, out_dim),
+        )
+
+    def forward(self, control, mem):
+        check_shape(control, (None, self.ctrl_dim))
+        batch_size, ctrl_dim = control.shape
+        check_shape(mem, (batch_size, ctrl_dim))
+
+        return self.layers(torch.cat([control, mem], 1))
+
+
 def check_shape(tensor: torch.Tensor,
                 match: typing.Tuple[typing.Optional[int], ...])\
         -> torch.Tensor:
