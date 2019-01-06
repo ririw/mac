@@ -10,8 +10,17 @@ test:
 check:
 	mac-learn check
 
+docker-base:
+	docker build -t registry.gitlab.com/ririw/mac/base - < Dockerfile-base
 
-sync:
+docker: docker-base
+	docker build -t registry.gitlab.com/ririw/mac .
+
+docker-push: docker docker-base
+	docker push registry.gitlab.com/ririw/mac/base
+	docker push registry.gitlab.com/ririw/mac
+
+sync: docker-base
 	rsync --exclude tests/__pycache__ \
 		  --exclude src/mac/__pycache__ \
 		  --exclude .git \
