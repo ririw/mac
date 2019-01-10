@@ -25,7 +25,8 @@ class MAC(torch.nn.Module):
             self.read_cells.append(ru_cell)
             self.write_cells.append(wu_cell)
 
-        self.initial_control = torch.nn.Parameter(torch.zeros(1, self.ctrl_dim))
+        self.initial_control = torch.nn.Parameter(
+            torch.zeros(1, self.ctrl_dim))
         self.initial_mem = torch.nn.Parameter(torch.zeros(1, self.ctrl_dim))
         self.reset_parameters()
 
