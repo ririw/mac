@@ -65,21 +65,26 @@ class RUCell(torch.nn.Module):
     def forward(self, mem, kb, control):
         batch_size, ctrl_dim = mem.shape
         assert ctrl_dim == self.ctrl_dim
-        check_shape(kb, (batch_size, ctrl_dim))
+        check_shape(kb, (batch_size, 14, 14, ctrl_dim))
         check_shape(control, (batch_size, ctrl_dim))
 
-        direct_inter = self.mem_lin(mem) * self.kb1_lin(kb)
-        check_shape(direct_inter, (batch_size, ctrl_dim))
+        mem_lin_1 = self.mem_lin(mem)
+        check_shape(mem_lin_1, (batch_size, ctrl_dim))
+        kb1_lin_1 = self.kb1_lin(kb)
+        check_shape(kb1_lin_1, (batch_size, 14, 14, ctrl_dim))
+        direct_inter = torch.einsum('bc,bwhc->bwhc', mem_lin_1, kb1_lin_1)
+        check_shape(direct_inter, (batch_size, 14, 14, ctrl_dim))
 
-        second_inter = self.kb2_lin(torch.cat([direct_inter, kb], 1))
-        check_shape(second_inter, (batch_size, ctrl_dim))
+        second_inter = self.kb2_lin(torch.cat([direct_inter, kb], -1))
+        check_shape(second_inter, (batch_size, 14, 14, ctrl_dim))
 
-        weighted_control = control * second_inter
+        weighted_control = torch.einsum('bc,bwhc->bwhc', control, second_inter)
         ra = self.ctrl_lin(weighted_control)
         rv = torch.nn.functional.softmax(ra, dim=1)
-        check_shape(rv, (batch_size, ctrl_dim))
+        check_shape(rv, (batch_size, 14, 14, ctrl_dim))
 
-        ri = torch.einsum('bc,bc->bc', kb, rv)
+        ri = torch.einsum('bwhc,bwhc->bc', kb, rv)
+        check_shape(ri, (batch_size, ctrl_dim))
 
         get_all_locals()
         return ri

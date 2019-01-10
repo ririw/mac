@@ -9,23 +9,23 @@ import numpy as np
 def test_direct_inter():
     __debug__options__['save_locals'] = True
     batch_size, ctrl_dim = 63, 17
-    a = torch.zeros(batch_size, ctrl_dim)
-    b = torch.zeros(batch_size, ctrl_dim)
-    c = torch.zeros(batch_size, ctrl_dim)
+    mem = torch.zeros(batch_size, ctrl_dim)
+    kb = torch.zeros(batch_size, 14, 14, ctrl_dim)
+    ctrl = torch.zeros(batch_size, ctrl_dim)
     target = torch.zeros(batch_size, ctrl_dim)
 
     ru = RUCell(ctrl_dim)
     opt = torch.optim.LBFGS(ru.parameters(), max_iter=100)
 
     for i in range(batch_size):
-        a[i, i % ctrl_dim] = 1
-        b[i] = torch.tensor(np.arange(ctrl_dim))
+        mem[i, i % ctrl_dim] = 1
+        kb[i] = torch.tensor(np.arange(ctrl_dim))
         target[i, :] = i % ctrl_dim
 
     def err_cb():
         opt.zero_grad()
-        ru(a, b, c)
-        v = __debug__options__['locals']['direct_inter']
+        ru(mem, kb, ctrl)
+        v = __debug__options__['locals']['direct_inter'][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         return err
@@ -37,23 +37,23 @@ def test_direct_inter():
 def test_second_inter():
     __debug__options__['save_locals'] = True
     batch_size, ctrl_dim = 31, 17
-    a = torch.zeros(batch_size, ctrl_dim)
-    b = torch.zeros(batch_size, ctrl_dim)
-    c = torch.zeros(batch_size, ctrl_dim)
+    mem = torch.zeros(batch_size, ctrl_dim)
+    kb = torch.zeros(batch_size, 14, 14, ctrl_dim)
+    ctrl = torch.zeros(batch_size, ctrl_dim)
     target = torch.zeros(batch_size, ctrl_dim)
 
     ru = RUCell(ctrl_dim)
     opt = torch.optim.Adam(ru.parameters())
 
     for i in range(batch_size):
-        a[i, i % ctrl_dim] = 1
-        b[i] = torch.tensor(np.arange(ctrl_dim))
+        mem[i, i % ctrl_dim] = 1
+        kb[i] = torch.tensor(np.arange(ctrl_dim))
         target[i, :] = i % ctrl_dim
 
     for i in range(500):
         opt.zero_grad()
-        ru(a, b, c)
-        v = __debug__options__['locals']['second_inter']
+        ru(mem, kb, ctrl)
+        v = __debug__options__['locals']['second_inter'][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         opt.step()
@@ -64,23 +64,23 @@ def test_second_inter():
 def test_weighted_control():
     __debug__options__['save_locals'] = True
     batch_size, ctrl_dim = 31, 17
-    a = torch.zeros(batch_size, ctrl_dim)
-    b = torch.zeros(batch_size, ctrl_dim)
-    c = torch.ones(batch_size, ctrl_dim)
+    mem = torch.zeros(batch_size, ctrl_dim)
+    kb = torch.zeros(batch_size, 14, 14, ctrl_dim)
+    ctrl = torch.ones(batch_size, ctrl_dim)
     target = torch.zeros(batch_size, ctrl_dim)
 
     ru = RUCell(ctrl_dim)
     opt = torch.optim.Adam(ru.parameters())
 
     for i in range(batch_size):
-        a[i, i % ctrl_dim] = 1
-        b[i] = torch.tensor(np.arange(ctrl_dim))
+        mem[i, i % ctrl_dim] = 1
+        kb[i] = torch.tensor(np.arange(ctrl_dim))
         target[i, :] = i % ctrl_dim
 
     for i in range(500):
         opt.zero_grad()
-        ru(a, b, c)
-        v = __debug__options__['locals']['weighted_control']
+        ru(mem, kb, ctrl)
+        v = __debug__options__['locals']['weighted_control'][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         opt.step()
@@ -91,23 +91,23 @@ def test_weighted_control():
 def test_ra():
     __debug__options__['save_locals'] = True
     batch_size, ctrl_dim = 31, 17
-    a = torch.zeros(batch_size, ctrl_dim)
-    b = torch.zeros(batch_size, ctrl_dim)
-    c = torch.ones(batch_size, ctrl_dim)
+    mem = torch.zeros(batch_size, ctrl_dim)
+    kb = torch.zeros(batch_size, 14, 14, ctrl_dim)
+    ctrl = torch.ones(batch_size, ctrl_dim)
     target = torch.zeros(batch_size, ctrl_dim)
 
     ru = RUCell(ctrl_dim)
     opt = torch.optim.Adam(ru.parameters())
 
     for i in range(batch_size):
-        a[i, i % ctrl_dim] = 1
-        b[i] = torch.tensor(np.arange(ctrl_dim))
+        mem[i, i % ctrl_dim] = 1
+        kb[i] = torch.tensor(np.arange(ctrl_dim))
         target[i, :] = i % ctrl_dim
 
     for i in range(500):
         opt.zero_grad()
-        ru(a, b, c)
-        v = __debug__options__['locals']['ra']
+        ru(mem, kb, ctrl)
+        v = __debug__options__['locals']['ra'][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         opt.step()

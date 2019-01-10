@@ -22,6 +22,8 @@ setup_requirements = [ ]
 
 test_requirements = [
     'flake8',
+    'nose',
+    'coverage',
 ]
 
 setup(
