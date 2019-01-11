@@ -1,6 +1,6 @@
 import torch.nn
 
-from mac import mac_cell
+from mac import mac_cell, debug_helpers
 
 
 class MAC(torch.nn.Module):
@@ -42,8 +42,8 @@ class MAC(torch.nn.Module):
             msg = 'Control dim mismatch, got {} but expected {}'\
                 .format(ctrl_dim, self.ctrl_dim)
             raise ValueError(msg)
-        mac_cell.check_shape(question_words, (batch_size, ctrl_dim))
-        mac_cell.check_shape(image_vec, (batch_size, 14, 14, ctrl_dim))
+        debug_helpers.check_shape(question_words, (batch_size, ctrl_dim))
+        debug_helpers.check_shape(image_vec, (batch_size, 14, 14, ctrl_dim))
 
         ctrl = self.initial_control.expand(batch_size, self.ctrl_dim)
         mem = self.initial_mem.expand(batch_size, self.ctrl_dim)
@@ -55,10 +55,24 @@ class MAC(torch.nn.Module):
             ctrl = cu_cell(ctrl, context_words, question_words)
             ri = ru_cell(mem, image_vec, ctrl)
             mem = wu_cell(mem, ri, ctrl)
-            mac_cell.check_shape(mem, (batch_size, ctrl_dim))
-            mac_cell.check_shape(ri, (batch_size, ctrl_dim))
-            mac_cell.check_shape(ctrl, (batch_size, ctrl_dim))
+            debug_helpers.check_shape(mem, (batch_size, ctrl_dim))
+            debug_helpers.check_shape(ri, (batch_size, ctrl_dim))
+            debug_helpers.check_shape(ctrl, (batch_size, ctrl_dim))
 
         output = self.output_cell(ctrl, mem)
-        mac_cell.check_shape(output, (batch_size, 28))
+        debug_helpers.check_shape(output, (batch_size, 28))
         return output
+
+
+class MACNet(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.kb_mapper = torch.nn.Conv2d(1024, 512, 3, padding=1)
+
+    def forward(self, kb):
+        batch_size = kb.shape[0]
+        debug_helpers.check_shape(kb, (batch_size, 1024, 14, 14))
+        kb_reduced = self.kb_mapper(kb)
+        debug_helpers.check_shape(kb_reduced, (batch_size, 512, 14, 14))
+
+        debug_helpers.save_all_locals()

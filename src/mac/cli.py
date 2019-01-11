@@ -5,6 +5,7 @@ from plumbum import cli
 
 import torch
 import torch.optim
+import torchvision.models.resnet
 
 
 @torch.jit.script
@@ -38,6 +39,10 @@ class Check(cli.Application):
         print(x.detach().numpy().round(3))
         if abs(x.detach().numpy()).sum() > 0.01:
             return 1
+
+        print('Checking can load resnet...')
+        torchvision.models.resnet.resnet101(False)
+
         return 0
 
 

@@ -18,7 +18,8 @@ from tqdm import tqdm
 D = 512
 
 
-def image_preprocess(name, dataset, output_fs):
+def image_preprocess(name, dataset, output_fs,
+                     batch_size=32, progress=True):
     resnet = resnet101(True)
     preproc_net = nn.Sequential(
         resnet.conv1,
@@ -44,8 +45,8 @@ def image_preprocess(name, dataset, output_fs):
     )
     try:
         bar = data.SequentialSampler(dataset)
-        batched = data.BatchSampler(bar, 32, False)
-        bar = tqdm(batched, total=len(batched))
+        batched = data.BatchSampler(bar, batch_size, False)
+        bar = tqdm(batched, total=len(batched), disable=not progress)
         for ixs in bar:
             batch = dataset[ixs]
             with torch.no_grad():

@@ -1,21 +1,9 @@
-import inspect
-
 import torch
 import torch.nn
 import torch.nn.functional
 import typing
 
-__debug__options__ = {
-    'save_locals': False,
-    'locals': None
-}
-
-
-def get_all_locals():
-    if not __debug__options__['save_locals']:
-        return
-    frame = inspect.currentframe()
-    __debug__options__['locals'] = frame.f_back.f_locals
+from mac.debug_helpers import check_shape, save_all_locals
 
 
 class CUCell(torch.nn.Module):
@@ -48,13 +36,19 @@ class CUCell(torch.nn.Module):
         next_ctrl = torch.einsum('bs,bsd->bd', cv, context_words)
         check_shape(next_ctrl, (batch_size, ctrl_dim))
 
-        get_all_locals()
+        save_all_locals()
         return next_ctrl
 
 
 class RUCell(torch.nn.Module):
-    def __init__(self, ctrl_dim):
+    default_image_size = (14, 14)
+
+    def __init__(self, ctrl_dim: int,
+                 image_size: typing.Optional[typing.Tuple[int, int]] = None):
         super().__init__()
+        if image_size is None:
+            image_size = self.default_image_size
+        self.im_w, self.im_h = image_size
         self.ctrl_dim = ctrl_dim
 
         self.mem_lin = torch.nn.Linear(ctrl_dim, ctrl_dim)
@@ -65,28 +59,29 @@ class RUCell(torch.nn.Module):
     def forward(self, mem, kb, control):
         batch_size, ctrl_dim = mem.shape
         assert ctrl_dim == self.ctrl_dim
-        check_shape(kb, (batch_size, 14, 14, ctrl_dim))
+        kb_shape = (batch_size, self.im_w, self.im_h, ctrl_dim)
+        check_shape(kb, kb_shape)
         check_shape(control, (batch_size, ctrl_dim))
 
         mem_lin_1 = self.mem_lin(mem)
         check_shape(mem_lin_1, (batch_size, ctrl_dim))
         kb1_lin_1 = self.kb1_lin(kb)
-        check_shape(kb1_lin_1, (batch_size, 14, 14, ctrl_dim))
+        check_shape(kb1_lin_1, kb_shape)
         direct_inter = torch.einsum('bc,bwhc->bwhc', mem_lin_1, kb1_lin_1)
-        check_shape(direct_inter, (batch_size, 14, 14, ctrl_dim))
+        check_shape(direct_inter, kb_shape)
 
         second_inter = self.kb2_lin(torch.cat([direct_inter, kb], -1))
-        check_shape(second_inter, (batch_size, 14, 14, ctrl_dim))
+        check_shape(second_inter, kb_shape)
 
         weighted_control = torch.einsum('bc,bwhc->bwhc', control, second_inter)
         ra = self.ctrl_lin(weighted_control)
         rv = torch.nn.functional.softmax(ra, dim=1)
-        check_shape(rv, (batch_size, 14, 14, ctrl_dim))
+        check_shape(rv, kb_shape)
 
         ri = torch.einsum('bwhc,bwhc->bc', kb, rv)
         check_shape(ri, (batch_size, ctrl_dim))
 
-        get_all_locals()
+        save_all_locals()
         return ri
 
 
@@ -139,7 +134,7 @@ class WUCell(torch.nn.Module):
         else:
             m_next = m_info
 
-        get_all_locals()
+        save_all_locals()
         return m_next
 
 
@@ -159,17 +154,3 @@ class OutputCell(torch.nn.Module):
         check_shape(mem, (batch_size, ctrl_dim))
 
         return self.layers(torch.cat([control, mem], 1))
-
-
-def check_shape(tensor: torch.Tensor,
-                match: typing.Tuple[typing.Optional[int], ...])\
-        -> torch.Tensor:
-    for s, m in zip(tensor.shape, match):
-        if m is None:
-            continue
-        if s != m:
-            msg = 'Shape {} does not match expectation {}'.format(
-                tensor.shape, match)
-            raise ValueError(msg)
-
-    return tensor

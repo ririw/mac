@@ -1,7 +1,8 @@
 import torch
 import torch.functional
 import torch.nn.functional
-from mac.mac_cell import CUCell, __debug__options__
+from mac.mac_cell import CUCell
+from mac.debug_helpers import __debug__options__
 import nose.tools
 
 

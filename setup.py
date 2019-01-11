@@ -15,7 +15,8 @@ requirements = [
     'fs',
     'tqdm',
     'scikit-image',
-    'numpy'
+    'numpy',
+    'allennlp'
 ]
 
 setup_requirements = [ ]
