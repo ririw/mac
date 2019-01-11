@@ -7,9 +7,12 @@ import torch.utils.data
 import fs.tempfs
 
 from mac import inputs
+from mac.config import getconfig
 
 
 def test_input_trf():
+    config = getconfig()
+    config['progress'] = False
     batch_size = 9
     input_data = torch.randn(batch_size, 3, 224, 224)
     input_dataset = ConcatDataset(input_data)

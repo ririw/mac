@@ -2,6 +2,7 @@ import os
 
 import fs.zipfs
 import fs.appfs
+import fs.osfs
 
 from mac import inputs
 from plumbum import cli
@@ -61,27 +62,23 @@ class Check(cli.Application):
 
 @MAC.subcommand('preprocess')
 class Preprocess(cli.Application):
-    def main(self, clevr_fs):
+    def main(self, clevr_fs, output_loc):
         if getconfig()['use_cuda']:
             print('CUDA enabled')
         else:
             print('CUDA disabled, this may be very slow...')
 
-        out_fs = fs.appfs.UserCacheFS('mac')
-        zf = fs.zipfs.ZipFS(clevr_fs)
+        out_fs = fs.open_fs(output_loc)
+        zf = fs.open_fs(clevr_fs)
 
-        qn_dir = zf.opendir('CLEVR_v1.0')
-        inputs.lang_preprocess('val', qn_dir, out_fs)
-        inputs.lang_preprocess('train', qn_dir, out_fs)
-        with qn_dir.opendir('images/train/') as data_fs:
+        inputs.lang_preprocess('val', zf, out_fs)
+        inputs.lang_preprocess('train', zf, out_fs)
+        with zf.opendir('images/train/') as data_fs:
             ds = inputs.CLEVRImageData(data_fs)
             inputs.image_preprocess('train', ds, out_fs)
-        with qn_dir.opendir('images/val/') as data_fs:
+        with zf.opendir('images/val/') as data_fs:
             ds = inputs.CLEVRImageData(data_fs)
             inputs.image_preprocess('val', ds, out_fs)
-        with qn_dir.opendir('images/test/') as data_fs:
-            ds = inputs.CLEVRImageData(data_fs)
-            inputs.image_preprocess('test', ds, out_fs)
         zf.close()
 
 

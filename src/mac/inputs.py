@@ -51,7 +51,8 @@ def image_preprocess(name, dataset, output_fs, batch_size=DEFAULT_BATCH_SIZE):
         'images', result_size, dtype='float32', compression="gzip")
     bar = data.SequentialSampler(dataset)
     batched = data.BatchSampler(bar, batch_size, False)
-    bar = tqdm(batched, disable=not progress, desc='Processing images')
+    bar = tqdm(batched, disable=not progress,
+               desc='Processing images - {}'.format(name))
     for ixs in bar:
         batch = dataset[ixs]
         with torch.no_grad():
@@ -72,7 +73,7 @@ def extract_qn_dataset(name, dataset_fs):
         f_data = json.load(f)
         prog_bar = tqdm(f_data['questions'],
                         disable=not progress,
-                        desc='Reading text data')
+                        desc='Reading text data - {}'.format(name))
         for question in prog_bar:
             im_index = question['image_index']
             qn_text = question['question']
@@ -94,13 +95,13 @@ def lang_preprocess(name, dataset_fs, output_fs,
 
     save_im_ix(group, im_ixs)
     save_answers(answer_texts, group)
-    save_questions(group, qn_texts, max_len, result_size, batch_size)
+    save_questions(name, group, qn_texts, max_len, result_size, batch_size)
 
     output_h5.close()
     output_file.close()
 
 
-def save_questions(group, qn_texts, max_len, result_size, batch_size):
+def save_questions(name, group, qn_texts, max_len, result_size, batch_size):
     progress = getconfig()['progress']
     encoded_qn_ds = group.require_dataset(
         'question', result_size,
@@ -118,7 +119,7 @@ def save_questions(group, qn_texts, max_len, result_size, batch_size):
         data.SequentialSampler(qn_dataset), batch_size, False)
     for batch_ix in tqdm(qn_sampler,
                          disable=not progress,
-                         desc='Processing questions'):
+                         desc='Processing questions - {}'.format(name)):
         with torch.no_grad():
             batch_qns = [q[:max_len] for q in qn_dataset[batch_ix]]
             batch_ids = elmo.batch_to_ids(batch_qns)

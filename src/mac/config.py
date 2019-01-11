@@ -38,7 +38,7 @@ _config = {
     'use_cuda': (torch.cuda.is_available() and not
                  literal_eval(os.environ.get('CUDA_DISABLED', 'False'))),
     'answer_mapping': {ans: ix for ix, ans in enumerate(_answers)},
-    'progress': True
+    'progress': True,
 }
 
 
