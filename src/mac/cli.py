@@ -2,6 +2,7 @@ import os
 
 import fs.zipfs
 import fs.appfs
+
 from mac import inputs
 from plumbum import cli
 import allennlp.modules.elmo
@@ -9,6 +10,8 @@ import allennlp.modules.elmo
 import torch
 import torch.optim
 import torchvision.models.resnet
+
+from mac.config import getconfig
 
 
 @torch.jit.script
@@ -59,12 +62,27 @@ class Check(cli.Application):
 @MAC.subcommand('preprocess')
 class Preprocess(cli.Application):
     def main(self, clevr_fs):
+        if getconfig()['use_cuda']:
+            print('CUDA enabled')
+        else:
+            print('CUDA disabled, this may be very slow...')
+
         out_fs = fs.appfs.UserCacheFS('mac')
         zf = fs.zipfs.ZipFS(clevr_fs)
-        print('Need more space to do training...')
-        with zf.opendir('CLEVR_v1.0/images/test/') as te:
-            ds = inputs.CLEVRData(te)
+
+        qn_dir = zf.opendir('CLEVR_v1.0')
+        inputs.lang_preprocess('val', qn_dir, out_fs)
+        inputs.lang_preprocess('train', qn_dir, out_fs)
+        with qn_dir.opendir('images/train/') as data_fs:
+            ds = inputs.CLEVRImageData(data_fs)
+            inputs.image_preprocess('train', ds, out_fs)
+        with qn_dir.opendir('images/val/') as data_fs:
+            ds = inputs.CLEVRImageData(data_fs)
+            inputs.image_preprocess('val', ds, out_fs)
+        with qn_dir.opendir('images/test/') as data_fs:
+            ds = inputs.CLEVRImageData(data_fs)
             inputs.image_preprocess('test', ds, out_fs)
+        zf.close()
 
 
 def main() -> None:

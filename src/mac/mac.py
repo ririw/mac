@@ -1,6 +1,3 @@
-import os
-
-import allennlp.modules.elmo
 import torch.nn
 
 from mac import mac_cell, debug_helpers
@@ -72,12 +69,7 @@ class MACNet(torch.nn.Module):
         super().__init__()
         self.ctrl_dim = mac.ctrl_dim
         self.kb_mapper = torch.nn.Conv2d(1024, self.ctrl_dim, 3, padding=1)
-        elmo_options_file = os.path.expanduser(
-            '~/Datasets/elmo_small_options.json')
-        elmo_weights_file = os.path.expanduser(
-            '~/Datasets/elmo_small_weights.hdf5')
-        self.elmo = allennlp.modules.elmo.Elmo(
-            elmo_options_file, elmo_weights_file, 2)
+
         self.lstm_processor = torch.nn.LSTM(
             256, self.ctrl_dim, bidirectional=True, batch_first=True)
         self.lstm_h0 = torch.zeros(2, 1, self.ctrl_dim)
@@ -96,24 +88,20 @@ class MACNet(torch.nn.Module):
                   'got {} and {} respectively'.format(
                     batch_size, len(questions))
             raise ValueError(msg)
+        seq_len = questions.shape[1]
 
         debug_helpers.check_shape(kb, (batch_size, 1024, 14, 14))
+        debug_helpers.check_shape(questions, (batch_size, seq_len, 256))
+
         kb_reduced = self.kb_mapper(kb)
         expected_kb_size = (batch_size, self.ctrl_dim, 14, 14)
         debug_helpers.check_shape(kb_reduced, expected_kb_size)
 
-        question_batches = allennlp.modules.elmo.batch_to_ids(questions)
-        elmo_result = self.elmo(question_batches)
-        elmo_embedding = elmo_result['elmo_representations'][1]
-        expected_elmo_size = (batch_size, None, 256)
-        debug_helpers.check_shape(elmo_embedding, expected_elmo_size)
-
-        seq_len = elmo_embedding.shape[1]
         h0_c0_size = (2, batch_size, self.ctrl_dim)
         h0 = self.lstm_h0.expand(h0_c0_size)
         c0 = self.lstm_c0.expand(h0_c0_size)
 
-        lstm_out, (hn, cn) = self.lstm_processor(elmo_embedding, (h0, c0))
+        lstm_out, (hn, cn) = self.lstm_processor(questions, (h0, c0))
 
         hn_concat = torch.cat([hn[0], hn[1]], -1)
         cn_concat = torch.cat([hn[0], hn[1]], -1)

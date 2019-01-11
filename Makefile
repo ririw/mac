@@ -20,7 +20,7 @@ docker-push: docker docker-base
 	docker push registry.gitlab.com/ririw/mac/base
 	docker push registry.gitlab.com/ririw/mac
 
-sync: docker-base
+sync:
 	rsync --exclude tests/__pycache__ \
 		  --exclude src/mac/__pycache__ \
 		  --exclude .git \
@@ -28,5 +28,6 @@ sync: docker-base
 		  --exclude .mypy_cache \
 		  --exclude .idea \
 		  --exclude .cache \
+		  --exclude .ipynb_checkpoints \
 		  -r --progress -a \
-		  . riri@learnbox:~/Documents/mac
+		  . riri@learnbox.local:~/Documents/mac

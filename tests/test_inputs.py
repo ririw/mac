@@ -1,3 +1,6 @@
+from contextlib import closing
+
+import h5py
 import numpy as np
 import torch
 import torch.utils.data
@@ -14,12 +17,13 @@ def test_input_trf():
     with fs.tempfs.TempFS() as output_fs:
         inputs.image_preprocess(
             'dummy', input_dataset, output_fs,
-            batch_size=4, progress=False)
+            batch_size=4)
 
-        assert output_fs.exists('dummy-mmap.dat')
-        dummy_path = output_fs.getsyspath('dummy-mmap.dat')
-        res = np.memmap(dummy_path, mode='r', dtype=np.float32)
-        assert res.size == np.product([9, 1024, 14, 14])
+        assert output_fs.exists('data.h5')
+        f = output_fs.getsyspath('data.h5')
+        with closing(h5py.File(f)) as f5:
+            res = f5['dummy']['images']
+            assert res.size == np.product([9, 1024, 14, 14])
 
 
 class ConcatDataset(torch.utils.data.Dataset):
