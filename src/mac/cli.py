@@ -1,7 +1,10 @@
+import os
+
 import fs.zipfs
 import fs.appfs
 from mac import inputs
 from plumbum import cli
+import allennlp.modules.elmo
 
 import torch
 import torch.optim
@@ -36,12 +39,19 @@ class Check(cli.Application):
 
         opt.step(err)
         print('Expect: [-0. -0. -0. -0. -0.]')
-        print(x.detach().numpy().round(3))
+        print('Got:   ', x.detach().numpy().round(3))
         if abs(x.detach().numpy()).sum() > 0.01:
             return 1
 
         print('Checking can load resnet...')
         torchvision.models.resnet.resnet101(False)
+
+        print('Checking can load elmo...')
+        elmo_options_file = os.path.expanduser(
+            '~/Datasets/elmo_small_options.json')
+        elmo_weights_file = os.path.expanduser(
+            '~/Datasets/elmo_small_weights.hdf5')
+        allennlp.modules.elmo.Elmo(elmo_options_file, elmo_weights_file, 2)
 
         return 0
 

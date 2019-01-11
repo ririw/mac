@@ -1,9 +1,9 @@
+import nose.tools
 import torch
 import torch.functional
 import torch.nn.functional
+
 from mac.mac_cell import CUCell
-from mac.debug_helpers import __debug__options__
-import nose.tools
 
 
 def test_simple_control_run():
@@ -50,7 +50,6 @@ def test_variable_batches():
 
 
 def test_silly_train():
-    __debug__options__['save_locals'] = True
     batch_size, seq_len, ctrl_dim = 63, 13, 11
     cell = CUCell(ctrl_dim)
     opt = torch.optim.Adam(cell.parameters())

@@ -2,13 +2,13 @@ import torch
 import torch.functional
 import torch.nn.functional
 from mac.mac_cell import RUCell
-from mac.debug_helpers import __debug__options__
+from mac.debug_helpers import get_saved_locals, enable_debug
 import nose.tools
 import numpy as np
 
 
 def test_direct_inter():
-    __debug__options__['save_locals'] = True
+    enable_debug()
     batch_size, ctrl_dim = 63, 17
     mem = torch.zeros(batch_size, ctrl_dim)
     kb = torch.zeros(batch_size, 14, 14, ctrl_dim)
@@ -26,7 +26,7 @@ def test_direct_inter():
     def err_cb():
         opt.zero_grad()
         ru(mem, kb, ctrl)
-        v = __debug__options__['locals']['direct_inter'][:, 0, 0, :]
+        v = get_saved_locals()['direct_inter'][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         return err
@@ -36,7 +36,7 @@ def test_direct_inter():
 
 
 def test_second_inter():
-    __debug__options__['save_locals'] = True
+    enable_debug()
     batch_size, ctrl_dim = 31, 17
     mem = torch.zeros(batch_size, ctrl_dim)
     kb = torch.zeros(batch_size, 14, 14, ctrl_dim)
@@ -54,7 +54,7 @@ def test_second_inter():
     for i in range(500):
         opt.zero_grad()
         ru(mem, kb, ctrl)
-        v = __debug__options__['locals']['second_inter'][:, 0, 0, :]
+        v = get_saved_locals()['second_inter'][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         opt.step()
@@ -63,7 +63,7 @@ def test_second_inter():
 
 
 def test_weighted_control():
-    __debug__options__['save_locals'] = True
+    enable_debug()
     batch_size, ctrl_dim = 31, 17
     mem = torch.zeros(batch_size, ctrl_dim)
     kb = torch.zeros(batch_size, 14, 14, ctrl_dim)
@@ -81,7 +81,7 @@ def test_weighted_control():
     for i in range(500):
         opt.zero_grad()
         ru(mem, kb, ctrl)
-        v = __debug__options__['locals']['weighted_control'][:, 0, 0, :]
+        v = get_saved_locals()['weighted_control'][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         opt.step()
@@ -90,7 +90,7 @@ def test_weighted_control():
 
 
 def test_ra():
-    __debug__options__['save_locals'] = True
+    enable_debug()
     batch_size, ctrl_dim = 31, 17
     mem = torch.zeros(batch_size, ctrl_dim)
     kb = torch.zeros(batch_size, 14, 14, ctrl_dim)
@@ -108,7 +108,7 @@ def test_ra():
     for i in range(500):
         opt.zero_grad()
         ru(mem, kb, ctrl)
-        v = __debug__options__['locals']['ra'][:, 0, 0, :]
+        v = get_saved_locals()['ra'][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         opt.step()

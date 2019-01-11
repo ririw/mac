@@ -6,3 +6,4 @@ torchvision
 fs
 tqdm
 scikit-image
+allennlp
