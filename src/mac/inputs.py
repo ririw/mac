@@ -130,7 +130,8 @@ def save_questions(name, group, qn_texts, max_len, result_size, batch_size):
                 batch_ids = batch_ids.cuda()
             mdl_res = elmo_mdl(batch_ids)
             batch_encoded = mdl_res['elmo_representations'][1].cpu()
-            debug_helpers.check_shape(batch_encoded, (len(batch_ix), None, 256))
+            debug_helpers.check_shape(
+                batch_encoded, (len(batch_ix), None, 256))
             seq_len = batch_encoded.shape[1]
 
             encoded_qn_ds[batch_ix, :seq_len] = batch_encoded.numpy()
@@ -172,12 +173,12 @@ class CLEVRQuestionData(data.Dataset):
 
 
 class CLEVRImageData(data.Dataset):
-    def __init__(self, clevr_fs: FS):
+    def __init__(self, clevr_fs: FS, work_limit=None):
         self.clevr_fs = clevr_fs
         self.images = None
         self.img_size = (224, 224)
         self._crawl()
-        self.work_limit = getconfig()['work_limit']
+        self.work_limit = work_limit
 
     def _crawl(self):
         self.images = {}

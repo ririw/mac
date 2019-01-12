@@ -64,25 +64,35 @@ class Check(cli.Application):
 class Preprocess(cli.Application):
     limit = cli.SwitchAttr(['-l', '--limit'], argtype=int, default=None)
 
-    def main(self, clevr_fs, output_loc):
-        if getconfig()['use_cuda']:
-            print('CUDA enabled')
-        else:
-            print('CUDA disabled, this may be very slow...')
-
+    def main(self, clevr_fs, preprocessed_loc):
+        cuda_message()
         getconfig()['work_limit'] = self.limit
-        out_fs = fs.open_fs(output_loc)
+
+        out_fs = fs.open_fs(preprocessed_loc)
         zf = fs.open_fs(clevr_fs)
 
         inputs.lang_preprocess('val', zf, out_fs)
         inputs.lang_preprocess('train', zf, out_fs)
         with zf.opendir('images/train/') as data_fs:
-            ds = inputs.CLEVRImageData(data_fs)
+            ds = inputs.CLEVRImageData(data_fs, self.limit)
             inputs.image_preprocess('train', ds, out_fs)
         with zf.opendir('images/val/') as data_fs:
-            ds = inputs.CLEVRImageData(data_fs)
+            ds = inputs.CLEVRImageData(data_fs, self.limit)
             inputs.image_preprocess('val', ds, out_fs)
         zf.close()
+
+
+@MAC.subcommand('train')
+class Train(cli.Application):
+    def main(self, preprocessed_loc):
+        cuda_message()
+
+
+def cuda_message():
+    if getconfig()['use_cuda']:
+        print('CUDA enabled')
+    else:
+        print('CUDA disabled, this may be very slow...')
 
 
 def main() -> None:
