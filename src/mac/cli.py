@@ -62,12 +62,15 @@ class Check(cli.Application):
 
 @MAC.subcommand('preprocess')
 class Preprocess(cli.Application):
+    limit = cli.SwitchAttr(['-l', '--limit'], argtype=int, default=None)
+
     def main(self, clevr_fs, output_loc):
         if getconfig()['use_cuda']:
             print('CUDA enabled')
         else:
             print('CUDA disabled, this may be very slow...')
 
+        getconfig()['work_limit'] = self.limit
         out_fs = fs.open_fs(output_loc)
         zf = fs.open_fs(clevr_fs)
 

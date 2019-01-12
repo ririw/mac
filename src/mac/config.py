@@ -39,6 +39,7 @@ _config = {
                  literal_eval(os.environ.get('CUDA_DISABLED', 'False'))),
     'answer_mapping': {ans: ix for ix, ans in enumerate(_answers)},
     'progress': True,
+    'work_limit': None
 }
 
 

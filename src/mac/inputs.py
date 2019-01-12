@@ -69,6 +69,7 @@ def extract_qn_dataset(name, dataset_fs):
     im_ixs, qn_texts, answer_texts = [], [], []
 
     json_file_name = 'questions/CLEVR_{}_questions.json'.format(name)
+    work_limit = getconfig()['work_limit']
     with dataset_fs.open(json_file_name) as f:
         f_data = json.load(f)
         prog_bar = tqdm(f_data['questions'],
@@ -81,6 +82,9 @@ def extract_qn_dataset(name, dataset_fs):
             im_ixs.append(im_index)
             qn_texts.append(qn_text)
             answer_texts.append(answer_text)
+            if work_limit is not None and len(answer_texts) >= work_limit:
+                break
+
     return im_ixs, qn_texts, answer_texts
 
 
@@ -98,7 +102,6 @@ def lang_preprocess(name, dataset_fs, output_fs,
     save_questions(name, group, qn_texts, max_len, result_size, batch_size)
 
     output_h5.close()
-    output_file.close()
 
 
 def save_questions(name, group, qn_texts, max_len, result_size, batch_size):
@@ -127,7 +130,7 @@ def save_questions(name, group, qn_texts, max_len, result_size, batch_size):
                 batch_ids = batch_ids.cuda()
             mdl_res = elmo_mdl(batch_ids)
             batch_encoded = mdl_res['elmo_representations'][1].cpu()
-            debug_helpers.check_shape(batch_encoded, (batch_size, None, 256))
+            debug_helpers.check_shape(batch_encoded, (len(batch_ix), None, 256))
             seq_len = batch_encoded.shape[1]
 
             encoded_qn_ds[batch_ix, :seq_len] = batch_encoded.numpy()
@@ -174,6 +177,7 @@ class CLEVRImageData(data.Dataset):
         self.images = None
         self.img_size = (224, 224)
         self._crawl()
+        self.work_limit = getconfig()['work_limit']
 
     def _crawl(self):
         self.images = {}
@@ -217,4 +221,6 @@ class CLEVRImageData(data.Dataset):
             return img.transpose(2, 0, 1).astype(np.float32)
 
     def __len__(self):
+        if self.work_limit is not None:
+            return min(self.work_limit, len(self.images))
         return len(self.images)
