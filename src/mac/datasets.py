@@ -44,17 +44,6 @@ class MAC_H5_Dataset(Dataset):
 
 
 class MAC_NP_Dataset(Dataset):
-    def __getitem__(self, index):
-        answer = self.answer[index]
-        image_ix = self.image_ix[index]
-        question = self.question[index]
-        image = self.image[image_ix]
-
-        return answer, question, image_ix, image
-
-    def __len__(self):
-        return self.answer.size
-
     def __init__(self, dataset_fs_url, group_name):
         self.dataset_fs_url = dataset_fs_url
         self.group_name = group_name
@@ -103,6 +92,18 @@ class MAC_NP_Dataset(Dataset):
             handle.close()
         self.fs.close()
 
+    def __getitem__(self, index):
+        if self.answer is None:
+            raise ValueError('Failed to use NP dataset with `with` context')
+        answer = self.answer[index]
+        image_ix = self.image_ix[index]
+        question = self.question[index]
+        image = self.image[image_ix]
+
+        return answer, question, image_ix, image
+
+    def __len__(self):
+        return self.answer.size
 
 if __name__ == '__main__':
     from tqdm import tqdm
