@@ -105,6 +105,7 @@ class MAC_NP_Dataset(Dataset):
     def __len__(self):
         return self.answer.size
 
+
 if __name__ == '__main__':
     from tqdm import tqdm
     hdf5_filename = '/Users/richardweiss/Datasets/results/decompressed_data'
