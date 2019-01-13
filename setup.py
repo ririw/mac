@@ -9,14 +9,17 @@ with open('README.md') as readme_file:
     readme = readme_file.read()
 
 requirements = [
+    'click',
+    'h5py',
     'plumbum',
     'torch>=1.0.0',
+    'numpy',
+    'scipy',
     'torchvision',
     'fs',
     'tqdm',
     'scikit-image',
-    'numpy',
-    'allennlp'
+    'allennlp',
 ]
 
 setup_requirements = [ ]

@@ -1,3 +1,5 @@
+click
+h5py
 plumbum
 torch>=1.0.0
 numpy

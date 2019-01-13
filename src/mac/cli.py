@@ -1,20 +1,12 @@
 import os
 
-import fs.zipfs
-import fs.appfs
-import fs.osfs
-
-from mac import inputs, datasets, mac
-from plumbum import cli
 import allennlp.modules.elmo
-
+import fs
 import torch
-import torch.optim
 import torchvision.models.resnet
-from torch.utils import data
+from plumbum import cli
 
-
-from mac.config import getconfig
+from mac import inputs, config, utils
 
 
 @torch.jit.script
@@ -23,7 +15,7 @@ def some_fn(x) -> torch.Tensor:
 
 
 class MAC(cli.Application):
-    def main(self) -> int:  # pylint: disable=arguments-differ
+    def main(self) -> int:
         if self.nested_command:
             return 0
         print('No command given.')
@@ -32,7 +24,7 @@ class MAC(cli.Application):
 
 @MAC.subcommand('check')
 class Check(cli.Application):
-    def main(self) -> int:  # pylint: disable=arguments-differ
+    def main(self) -> int:
         x = torch.ones(5, requires_grad=True)
 
         opt = torch.optim.LBFGS([x])
@@ -67,8 +59,8 @@ class Preprocess(cli.Application):
     limit = cli.SwitchAttr(['-l', '--limit'], argtype=int, default=None)
 
     def main(self, clevr_fs, preprocessed_loc):
-        cuda_message()
-        getconfig()['work_limit'] = self.limit
+        utils.cuda_message()
+        config.getconfig()['work_limit'] = self.limit
 
         out_fs = fs.open_fs(preprocessed_loc)
         zf = fs.open_fs(clevr_fs)
@@ -82,63 +74,6 @@ class Preprocess(cli.Application):
             ds = inputs.CLEVRImageData(data_fs, self.limit)
             inputs.image_preprocess('val', ds, out_fs)
         zf.close()
-
-
-@MAC.subcommand('train')
-class Train(cli.Application):
-    def main(self, preprocessed_loc):
-        cuda_message()
-
-        mac_cell = mac.MAC(12, 512)
-        net = mac.MACNet(mac_cell)
-        preprocessed_fs = fs.open_fs(preprocessed_loc)
-
-        with datasets.MAC_NP_Dataset(preprocessed_fs, 'train') as train_ds:
-            try:
-                self.train(net, train_ds)
-            except KeyboardInterrupt:
-                pass
-
-        with preprocessed_fs.open('net.pkl', 'wb') as f:
-            torch.save(net, f)
-
-    def train(self, net, train_dataset):
-        use_cuda = getconfig()['use_cuda']
-
-        sampler = data.BatchSampler(
-            data.RandomSampler(train_dataset), 8, False)
-        opt = torch.optim.Adam(net.parameters())
-
-        if use_cuda:
-            net = net.cuda()
-
-        for ix in sampler:
-            opt.zero_grad()
-            answer, question, image_ix, image = train_dataset[ix]
-            answer = torch.Tensor(answer).long()
-            question = torch.Tensor(question)
-            image = torch.Tensor(image)
-
-            if use_cuda:
-                answer = answer.cuda()
-                question = question.cuda()
-                image = image.cuda()
-
-            result = net.forward(image, question)
-            loss = torch.nn.CrossEntropyLoss()(result, answer)
-            loss.backward()
-            opt.step()
-
-            print(loss.item())
-            print(result.argmax(1))
-            print(answer)
-
-
-def cuda_message():
-    if getconfig()['use_cuda']:
-        print('CUDA enabled')
-    else:
-        print('CUDA disabled, this may be very slow...')
 
 
 def main() -> None:
