@@ -52,7 +52,8 @@ class Train(cli.Application):
 
         ix = next(iter(sampler))
         for step in range(1000):
-            self.train_step(ix, opt, use_cuda, train_dataset, net, writer, step)
+            self.train_step(ix, opt, use_cuda,
+                            train_dataset, net, writer, step)
 
     def train(self, net, train_dataset, writer):
         use_cuda = config.getconfig()['use_cuda']
@@ -65,7 +66,8 @@ class Train(cli.Application):
             net = net.cuda()
 
         for step, ix in enumerate(sampler):
-            self.train_step(ix, opt, use_cuda, train_dataset, net, writer, step)
+            self.train_step(ix, opt, use_cuda,
+                            train_dataset, net, writer, step)
 
     def train_step(self, ix, opt, use_cuda, train_dataset, net, writer, step):
         opt.zero_grad()
