@@ -23,18 +23,33 @@ def test_dataset_multiple():
     fake_ds, dataset_data = make_fake_dataset()
     with datasets.MAC_NP_Dataset(fake_ds, 'val') as val_dataset:
         for i in range(10):
-            answer, question, image_ix, image = val_dataset[i:i+6]
+            answer, question, image_ix, image = val_dataset[i:i + 6]
             np.testing.assert_array_equal(
-                image_ix, dataset_data['val']['img_ix'][i:i+6])
+                image_ix, dataset_data['val']['img_ix'][i:i + 6])
             np.testing.assert_array_equal(
                 image, dataset_data['val']['images'][image_ix])
             np.testing.assert_array_equal(
-                question, dataset_data['val']['question'][i:i+6])
+                question, dataset_data['val']['question'][i:i + 6])
             np.testing.assert_array_equal(
-                answer, dataset_data['val']['answer'][i:i+6])
+                answer, dataset_data['val']['answer'][i:i + 6])
 
             nose.tools.assert_equal(len(image_ix), 6)
             np.testing.assert_array_less(image_ix, 16)
+
+
+def test_dataset_fail_ctx_get():
+    fake_ds, dataset_data = make_fake_dataset()
+    ds = datasets.MAC_NP_Dataset(fake_ds, 'val')
+    with nose.tools.assert_raises(TypeError):
+        x = ds[0]
+        assert x is not None  # Dummy test for pep8
+
+
+def test_dataset_fail_ctx_len():
+    fake_ds, dataset_data = make_fake_dataset()
+    ds = datasets.MAC_NP_Dataset(fake_ds, 'val')
+    with nose.tools.assert_raises(TypeError):
+        assert len(ds)  # Dummy test for pep8
 
 
 def make_fake_dataset():

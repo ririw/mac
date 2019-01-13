@@ -68,12 +68,17 @@ class MACNet(torch.nn.Module):
     def __init__(self, mac: MAC):
         super().__init__()
         self.ctrl_dim = mac.ctrl_dim
+        if self.ctrl_dim % 2:
+            msg = 'Control dim must be divisible by 2, ' \
+                  'passed {}'.format(self.ctrl_dim)
+            raise ValueError(msg)
+        self.mac: MAC = mac
         self.kb_mapper = torch.nn.Conv2d(1024, self.ctrl_dim, 3, padding=1)
 
         self.lstm_processor = torch.nn.LSTM(
-            256, self.ctrl_dim, bidirectional=True, batch_first=True)
-        self.lstm_h0 = torch.zeros(2, 1, self.ctrl_dim)
-        self.lstm_c0 = torch.zeros(2, 1, self.ctrl_dim)
+            256, self.ctrl_dim//2, bidirectional=True, batch_first=True)
+        self.lstm_h0 = torch.zeros(2, 1, self.ctrl_dim//2)
+        self.lstm_c0 = torch.zeros(2, 1, self.ctrl_dim//2)
 
         self.reset_parameters()
 
@@ -97,7 +102,7 @@ class MACNet(torch.nn.Module):
         expected_kb_size = (batch_size, self.ctrl_dim, 14, 14)
         debug_helpers.check_shape(kb_reduced, expected_kb_size)
 
-        h0_c0_size = (2, batch_size, self.ctrl_dim)
+        h0_c0_size = (2, batch_size, self.ctrl_dim//2)
         h0 = self.lstm_h0.expand(h0_c0_size)
         c0 = self.lstm_c0.expand(h0_c0_size)
 
@@ -105,10 +110,13 @@ class MACNet(torch.nn.Module):
 
         hn_concat = torch.cat([hn[0], hn[1]], -1)
         cn_concat = torch.cat([hn[0], hn[1]], -1)
-        debug_helpers.check_shape(hn_concat, (batch_size, self.ctrl_dim*2))
-        debug_helpers.check_shape(cn_concat, (batch_size, self.ctrl_dim*2))
+        debug_helpers.check_shape(hn_concat, (batch_size, self.ctrl_dim))
+        debug_helpers.check_shape(cn_concat, (batch_size, self.ctrl_dim))
         debug_helpers.check_shape(
-            lstm_out, (batch_size, seq_len, self.ctrl_dim*2))
+            lstm_out, (batch_size, seq_len, self.ctrl_dim))
 
+        # Fixme - deeply dubious code...
+        kb_tf = kb_reduced.transpose(3, 1)
+        res = self.mac.forward(hn_concat, kb_tf, lstm_out)
         debug_helpers.save_all_locals()
-        return kb_reduced
+        return res

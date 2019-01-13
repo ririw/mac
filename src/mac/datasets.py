@@ -94,7 +94,7 @@ class MAC_NP_Dataset(Dataset):
 
     def __getitem__(self, index):
         if self.answer is None:
-            raise ValueError('Failed to use NP dataset with `with` context')
+            raise TypeError('Failed to use NP dataset with `with` context')
         answer = self.answer[index]
         image_ix = self.image_ix[index]
         question = self.question[index]
@@ -103,6 +103,9 @@ class MAC_NP_Dataset(Dataset):
         return answer, question, image_ix, image
 
     def __len__(self):
+        if self.answer is None:
+            raise TypeError('Failed to use NP dataset with `with` context')
+
         return self.answer.size
 
 

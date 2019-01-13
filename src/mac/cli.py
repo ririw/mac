@@ -4,13 +4,15 @@ import fs.zipfs
 import fs.appfs
 import fs.osfs
 
-from mac import inputs
+from mac import inputs, datasets, mac
 from plumbum import cli
 import allennlp.modules.elmo
 
 import torch
 import torch.optim
 import torchvision.models.resnet
+from torch.utils import data
+
 
 from mac.config import getconfig
 
@@ -86,6 +88,50 @@ class Preprocess(cli.Application):
 class Train(cli.Application):
     def main(self, preprocessed_loc):
         cuda_message()
+
+        mac_cell = mac.MAC(12, 512)
+        net = mac.MACNet(mac_cell)
+        preprocessed_fs = fs.open_fs(preprocessed_loc)
+
+        with datasets.MAC_NP_Dataset(preprocessed_fs, 'train') as train_ds:
+            try:
+                self.train(net, train_ds)
+            except KeyboardInterrupt:
+                pass
+
+        with preprocessed_fs.open('net.pkl', 'wb') as f:
+            torch.save(net, f)
+
+    def train(self, net, train_dataset):
+        use_cuda = getconfig()['use_cuda']
+
+        sampler = data.BatchSampler(
+            data.RandomSampler(train_dataset), 8, False)
+        opt = torch.optim.Adam(net.parameters())
+
+        if use_cuda:
+            net = net.cuda()
+
+        for ix in sampler:
+            opt.zero_grad()
+            answer, question, image_ix, image = train_dataset[ix]
+            answer = torch.Tensor(answer).long()
+            question = torch.Tensor(question)
+            image = torch.Tensor(image)
+
+            if use_cuda:
+                answer = answer.cuda()
+                question = question.cuda()
+                image = image.cuda()
+
+            result = net.forward(image, question)
+            loss = torch.nn.CrossEntropyLoss()(result, answer)
+            loss.backward()
+            opt.step()
+
+            print(loss.item())
+            print(result.argmax(1))
+            print(answer)
 
 
 def cuda_message():
