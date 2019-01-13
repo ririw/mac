@@ -6,7 +6,11 @@ import torch
 import torchvision.models.resnet
 from plumbum import cli
 
-from mac import inputs, config, utils
+from mac import inputs, config, utils, train
+
+_used_no_del_by_flake8_ = [
+    train
+]
 
 
 @torch.jit.script
@@ -14,15 +18,7 @@ def some_fn(x) -> torch.Tensor:
     return x.abs().sum()
 
 
-class MAC(cli.Application):
-    def main(self) -> int:
-        if self.nested_command:
-            return 0
-        print('No command given.')
-        return 1
-
-
-@MAC.subcommand('check')
+@utils.MAC.subcommand('check')
 class Check(cli.Application):
     def main(self) -> int:
         x = torch.ones(5, requires_grad=True)
@@ -54,7 +50,7 @@ class Check(cli.Application):
         return 0
 
 
-@MAC.subcommand('preprocess')
+@utils.MAC.subcommand('preprocess')
 class Preprocess(cli.Application):
     limit = cli.SwitchAttr(['-l', '--limit'], argtype=int, default=None)
 
@@ -77,7 +73,7 @@ class Preprocess(cli.Application):
 
 
 def main() -> None:
-    MAC.run()
+    utils.MAC.run()
 
 
 if __name__ == '__main__':
