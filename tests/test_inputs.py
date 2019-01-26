@@ -1,10 +1,7 @@
-from contextlib import closing
-
-import h5py
+import fs.tempfs
 import numpy as np
 import torch
 import torch.utils.data
-import fs.tempfs
 
 from mac import inputs
 from mac.config import getconfig
@@ -22,11 +19,10 @@ def test_input_trf():
             'dummy', input_dataset, output_fs,
             batch_size=4)
 
-        assert output_fs.exists('data.h5')
-        f = output_fs.getsyspath('data.h5')
-        with closing(h5py.File(f)) as f5:
-            res = f5['dummy']['images']
-            assert res.size == np.product([9, 1024, 14, 14])
+        assert output_fs.exists('dummy/images')
+        f = output_fs.getsyspath('dummy/images')
+        ds = np.memmap(f, 'float32', 'r')
+        assert ds.size == np.product([9, 1024, 14, 14])
 
 
 class ConcatDataset(torch.utils.data.Dataset):

@@ -5,21 +5,19 @@ import json
 import os
 
 import numpy as np
+import skimage.io
+import skimage.transform
+import torch
+from allennlp.modules import elmo
 from fs.base import FS
 from fs.walk import Walker
-
-from mac import debug_helpers
-from mac.config import getconfig
-import skimage.io
-import h5py
-import skimage.transform
-from allennlp.modules import elmo
-
-import torch
 from torch import nn
 from torch.utils import data
 from torchvision.models import resnet101
 from tqdm import tqdm
+
+from mac import debug_helpers
+from mac.config import getconfig
 
 D = 512
 DEFAULT_BATCH_SIZE = 128
@@ -44,11 +42,13 @@ def image_preprocess(name, dataset, output_fs, batch_size=DEFAULT_BATCH_SIZE):
         sample = sample.cuda()
 
     result_size = (len(dataset),) + preproc_net(sample).shape[1:]
-    output_file = output_fs.getsyspath('data.h5')
-    output_h5 = h5py.File(output_file)
-    group = output_h5.require_group(name)
-    res_file = group.require_dataset(
-        'images', result_size, dtype='float32', compression="gzip")
+    output_fs.makedirs(name, recreate=True)
+    output_file = output_fs.getsyspath('{}/images'.format(name))
+    output_mat = np.memmap(
+        output_file,
+        np.float32,
+        'w+',
+        shape=result_size)
     bar = data.SequentialSampler(dataset)
     batched = data.BatchSampler(bar, batch_size, False)
     bar = tqdm(batched, disable=not progress,
@@ -60,8 +60,7 @@ def image_preprocess(name, dataset, output_fs, batch_size=DEFAULT_BATCH_SIZE):
                 preprocessed = preproc_net(batch.cuda()).cpu()
             else:
                 preprocessed = preproc_net(batch)
-            res_file[ixs] = preprocessed.numpy()
-    output_h5.close()
+            output_mat[ixs] = preprocessed.numpy()
 
 
 def extract_qn_dataset(name, dataset_fs):
@@ -93,22 +92,19 @@ def lang_preprocess(name, dataset_fs, output_fs,
     im_ixs, qn_texts, answer_texts = extract_qn_dataset(name, dataset_fs)
     result_size = (len(qn_texts), max_len, 256)
 
-    output_file = output_fs.getsyspath('data.h5')
-    output_h5 = h5py.File(output_file)
-    group = output_h5.require_group(name)
-
-    save_im_ix(group, im_ixs)
-    save_answers(answer_texts, group)
-    save_questions(name, group, qn_texts, max_len, result_size, batch_size)
-
-    output_h5.close()
+    output_fs = output_fs.makedirs(name, recreate=True)
+    save_im_ix(output_fs, im_ixs)
+    save_answers(output_fs, answer_texts)
+    save_questions(output_fs, name, qn_texts, max_len, result_size, batch_size)
 
 
-def save_questions(name, group, qn_texts, max_len, result_size, batch_size):
+def save_questions(output_fs, name, qn_texts,
+                   max_len, result_size, batch_size):
     progress = getconfig()['progress']
-    encoded_qn_ds = group.require_dataset(
-        'question', result_size,
-        dtype='float32', compression="gzip")
+    encoded_qn_ds = np.memmap(
+        output_fs.getsyspath('question'), np.float32,
+        'w+', shape=result_size
+    )
     elmo_options_file = os.path.expanduser(
         '~/Datasets/elmo_small_options.json')
     elmo_weights_file = os.path.expanduser(
@@ -137,20 +133,22 @@ def save_questions(name, group, qn_texts, max_len, result_size, batch_size):
             encoded_qn_ds[batch_ix, :seq_len] = batch_encoded.numpy()
 
 
-def save_answers(answer_texts, group):
+def save_answers(output_fs, answer_texts):
     answer_mapping = getconfig()['answer_mapping']
     answer_ixs = [answer_mapping[ans] for ans in answer_texts]
     del answer_texts
-    answer_ixs_ds = group.require_dataset(
-        'answer', (len(answer_ixs),),
-        dtype='int32', compression="gzip")
+    answer_ixs_ds = np.memmap(
+        output_fs.getsyspath('answer_mapping'),
+        np.int32, 'w+', shape=len(answer_ixs)
+    )
     answer_ixs_ds[:] = answer_ixs
 
 
-def save_im_ix(group, im_ixs):
-    img_ix_ds = group.require_dataset(
-        'img_ix', (len(im_ixs),),
-        dtype='int32', compression="gzip")
+def save_im_ix(output_fs, im_ixs):
+    img_ix_ds = np.memmap(
+        output_fs.getsyspath('img_ix'),
+        np.int32, 'w+', shape=len(im_ixs)
+    )
     img_ix_ds[:] = im_ixs
     del im_ixs
 

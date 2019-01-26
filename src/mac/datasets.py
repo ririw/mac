@@ -72,10 +72,10 @@ class MAC_NP_Dataset(Dataset):
         dataset_size = self.image_ix.size
 
         self.image = np.memmap(
-            image_handle, dtype='float16', mode='r',
+            image_handle, dtype='float32', mode='r',
             shape=(dataset_size, 1024, 14, 14))
         self.question = np.memmap(
-            question_handle, dtype='float16', mode='r',
+            question_handle, dtype='float32', mode='r',
             shape=(dataset_size, 160, 256))
 
         self.open_handles = [image_handle, image_ix_handle,

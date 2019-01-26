@@ -61,14 +61,15 @@ class Preprocess(cli.Application):
         out_fs = fs.open_fs(preprocessed_loc)
         zf = fs.open_fs(clevr_fs)
 
-        inputs.lang_preprocess('val', zf, out_fs)
         inputs.lang_preprocess('train', zf, out_fs)
         with zf.opendir('images/train/') as data_fs:
             ds = inputs.CLEVRImageData(data_fs, self.limit)
             inputs.image_preprocess('train', ds, out_fs)
+        inputs.lang_preprocess('val', zf, out_fs)
         with zf.opendir('images/val/') as data_fs:
             ds = inputs.CLEVRImageData(data_fs, self.limit)
             inputs.image_preprocess('val', ds, out_fs)
+
         zf.close()
 
 

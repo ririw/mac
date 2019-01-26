@@ -61,13 +61,13 @@ def make_fake_dataset():
         sg = temp_fs.makedir(group)
         images = np.memmap(
             sg.getsyspath('images'), mode='w+',
-            dtype=np.float16, shape=(batch_size, 1024, 14, 14))
+            dtype=np.float32, shape=(batch_size, 1024, 14, 14))
         img_ix = np.memmap(
             sg.getsyspath('img_ix'), mode='w+',
             dtype=np.int32, shape=batch_size)
         question = np.memmap(
             sg.getsyspath('question'), mode='w+',
-            dtype=np.float16, shape=(batch_size, 160, 256))
+            dtype=np.float32, shape=(batch_size, 160, 256))
         answer = np.memmap(
             sg.getsyspath('answer'), mode='w+',
             dtype=np.int32, shape=batch_size)
