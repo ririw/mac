@@ -69,14 +69,17 @@ class MAC_NP_Dataset(Dataset):
             image_ix_handle, dtype='int32', mode='r')
         self.answer = np.memmap(
             answer_handle, dtype='int32', mode='r')
-        dataset_size = self.image_ix.size
+        msg = 'Expected image min IX 0, got {}'.format(self.image_ix.min())
+        assert self.image_ix.min() == 0, msg
+        im_dataset_size = self.image_ix.max() + 1
+        qn_dataset_size = self.image_ix.size
 
         self.image = np.memmap(
             image_handle, dtype='float32', mode='r',
-            shape=(dataset_size, 1024, 14, 14))
+            shape=(im_dataset_size, 1024, 14, 14))
         self.question = np.memmap(
             question_handle, dtype='float32', mode='r',
-            shape=(dataset_size, 160, 256))
+            shape=(qn_dataset_size, 160, 256))
 
         self.open_handles = [image_handle, image_ix_handle,
                              question_handle, answer_handle]

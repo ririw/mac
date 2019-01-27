@@ -65,6 +65,7 @@ def make_fake_dataset():
         img_ix = np.memmap(
             sg.getsyspath('img_ix'), mode='w+',
             dtype=np.int32, shape=batch_size)
+        # This ensures that some unit tests pass
         question = np.memmap(
             sg.getsyspath('question'), mode='w+',
             dtype=np.float32, shape=(batch_size, 160, 256))
@@ -76,6 +77,7 @@ def make_fake_dataset():
         img_ix[:] = np.random.choice(batch_size, size=img_ix.shape)
         question[:] = np.random.normal(batch_size, size=question.shape)
         answer[:] = np.random.choice(28, size=answer.shape)
+        img_ix[0] = 0
 
         all_data[group] = {
             'images': images,

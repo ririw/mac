@@ -4,10 +4,12 @@ import os
 import fs
 import tensorboardX
 import torch
+import torch.nn.functional
 from fs import open_fs
 from plumbum import cli
 import numpy as np
 from torch.utils import data
+from tqdm import tqdm
 
 import mac.utils
 from mac import datasets, mac, config, utils
@@ -56,7 +58,7 @@ class Train(cli.Application):
             net = net.cuda()
 
         ix = next(iter(sampler))
-        for step in range(1000):
+        for step in tqdm(range(1000)):
             self.train_step(ix, opt, use_cuda,
                             train_dataset, net, writer, step, results_fs)
 
@@ -70,12 +72,13 @@ class Train(cli.Application):
         if use_cuda:
             net = net.cuda()
 
-        for step, ix in enumerate(sampler):
+        for step, ix in enumerate(tqdm(sampler)):
             self.train_step(ix, opt, use_cuda,
                             train_dataset, net, writer, step, results_fs)
 
     def train_step(self, ix, opt, use_cuda,
-                   train_dataset, net, writer, step, results_fs):
+                   train_dataset, net, writer,
+                   step, results_fs):
         opt.zero_grad()
         answer, question, image_ix, image = train_dataset[ix]
         answer = torch.Tensor(answer).long()
@@ -91,6 +94,8 @@ class Train(cli.Application):
         loss = torch.nn.CrossEntropyLoss()(result, answer)
         loss.backward()
         writer.add_scalar('loss', loss.item(), step)
+        accuracy = torch.mean((torch.argmax(result, 1) == answer).float())
+        writer.add_scalar('accuracy', accuracy.item(), step)
         opt.step()
 
         if step % 50:
