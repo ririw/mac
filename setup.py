@@ -20,9 +20,10 @@ requirements = [
     'tqdm',
     'scikit-image',
     'allennlp',
+    'tensorboardX'
 ]
 
-setup_requirements = [ ]
+setup_requirements = []
 
 test_requirements = [
     'flake8',

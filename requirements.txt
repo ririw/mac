@@ -9,3 +9,4 @@ fs
 tqdm
 scikit-image
 allennlp
+tensorboardX

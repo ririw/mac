@@ -58,8 +58,8 @@ class Preprocess(cli.Application):
         utils.cuda_message()
         config.getconfig()['work_limit'] = self.limit
 
-        out_fs = fs.open_fs(preprocessed_loc)
         zf = fs.open_fs(clevr_fs)
+        out_fs = fs.open_fs(preprocessed_loc, create=True)
 
         inputs.lang_preprocess('train', zf, out_fs)
         with zf.opendir('images/train/') as data_fs:

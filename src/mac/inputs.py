@@ -138,7 +138,7 @@ def save_answers(output_fs, answer_texts):
     answer_ixs = [answer_mapping[ans] for ans in answer_texts]
     del answer_texts
     answer_ixs_ds = np.memmap(
-        output_fs.getsyspath('answer_mapping'),
+        output_fs.getsyspath('answer'),
         np.int32, 'w+', shape=len(answer_ixs)
     )
     answer_ixs_ds[:] = answer_ixs

@@ -77,8 +77,8 @@ class MACNet(torch.nn.Module):
 
         self.lstm_processor = torch.nn.LSTM(
             256, self.ctrl_dim//2, bidirectional=True, batch_first=True)
-        self.lstm_h0 = torch.zeros(2, 1, self.ctrl_dim//2)
-        self.lstm_c0 = torch.zeros(2, 1, self.ctrl_dim//2)
+        self.lstm_h0 = torch.nn.Parameter(torch.zeros(2, 1, self.ctrl_dim//2))
+        self.lstm_c0 = torch.nn.Parameter(torch.zeros(2, 1, self.ctrl_dim//2))
 
         self.reset_parameters()
 
@@ -103,8 +103,8 @@ class MACNet(torch.nn.Module):
         debug_helpers.check_shape(kb_reduced, expected_kb_size)
 
         h0_c0_size = (2, batch_size, self.ctrl_dim//2)
-        h0 = self.lstm_h0.expand(h0_c0_size)
-        c0 = self.lstm_c0.expand(h0_c0_size)
+        h0 = self.lstm_h0.expand(h0_c0_size).contiguous()
+        c0 = self.lstm_c0.expand(h0_c0_size).contiguous()
 
         lstm_out, (hn, cn) = self.lstm_processor(questions, (h0, c0))
 
