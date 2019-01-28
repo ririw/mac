@@ -1,7 +1,8 @@
+import typing
+
 import torch
 import torch.nn
 import torch.nn.functional
-import typing
 
 from mac.debug_helpers import check_shape, save_all_locals
 
@@ -126,8 +127,8 @@ class WUCell(torch.nn.Module):
         check_shape(m_info, (batch_size, ctrl_dim))
 
         if self.gate_mem:
-            ci = torch.sigmoid(
-                self.mem_gate(control).squeeze(1))
+            mem_ctrl = self.mem_gate(control).squeeze(1)
+            ci = torch.sigmoid(mem_ctrl)
             check_shape(m_info, (batch_size,))
             m_next = (torch.einsum('bd,b->bd', mem, ci)
                       + torch.einsum('bd,b->bd', m_info, 1 - ci))

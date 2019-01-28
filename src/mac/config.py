@@ -1,7 +1,9 @@
+import typing
 from ast import literal_eval
 
 import os
 import torch
+from tensorboardX import SummaryWriter
 
 _answers = [
         '0',
@@ -39,9 +41,26 @@ _config = {
                  literal_eval(os.environ.get('CUDA_DISABLED', 'False'))),
     'answer_mapping': {ans: ix for ix, ans in enumerate(_answers)},
     'progress': True,
-    'work_limit': None
+    'work_limit': None,
+    'step': 0,
+    'summary_writer': None,
 }
 
 
 def getconfig():
     return _config
+
+
+def setconfig(key, value):
+    if key not in _config:
+        raise KeyError('Key {} not found in config amongst {}'.format(
+            key, _config.keys()))
+    _config[key] = value
+
+
+def get_writer_maybe() -> typing.Optional[SummaryWriter]:
+    cfg = getconfig()
+    if cfg['step'] % 25 == 24:
+        return cfg['summary_writer']
+    else:
+        return None

@@ -27,11 +27,13 @@ class Train(cli.Application):
         utils.cuda_message()
         np.printoptions(linewidth=139)
 
-        mac_cell = mac.MAC(12, 512)
+        mac_cell = mac.MACRec(6, 256)
         net = mac.MACNet(mac_cell)
         nowtime = str(datetime.datetime.now())
         writer = tensorboardX.SummaryWriter(os.path.join(log_loc, nowtime))
         results_fs = open_fs(results_loc, create=True)
+
+        config.setconfig('summary_writer', writer)
 
         with datasets.MAC_NP_Dataset(preprocessed_loc, 'train') as train_ds:
             try:
@@ -74,11 +76,14 @@ class Train(cli.Application):
 
         for step, ix in enumerate(tqdm(sampler)):
             self.train_step(ix, opt, use_cuda,
-                            train_dataset, net, writer, step, results_fs)
+                            train_dataset, net,
+                            writer, step, results_fs)
 
     def train_step(self, ix, opt, use_cuda,
                    train_dataset, net, writer,
                    step, results_fs):
+        config.setconfig('step', step)
+
         opt.zero_grad()
         answer, question, image_ix, image = train_dataset[ix]
         answer = torch.Tensor(answer).long()
@@ -93,11 +98,13 @@ class Train(cli.Application):
         result = net.forward(image, question)
         loss = torch.nn.CrossEntropyLoss()(result, answer)
         loss.backward()
-        writer.add_scalar('loss', loss.item(), step)
-        accuracy = torch.mean((torch.argmax(result, 1) == answer).float())
-        writer.add_scalar('accuracy', accuracy.item(), step)
-        opt.step()
 
-        if step % 50:
+        opt.step()
+        with torch.no_grad():
+            accuracy = torch.mean((torch.argmax(result, 1) == answer).float())
+        writer.add_scalar('loss', loss.item(), step)
+        writer.add_scalar('accuracy', accuracy.item(), step)
+
+        if step % 50 == 0:
             with results_fs.open('model.pkl', 'wb') as f:
                 torch.save({'net': net, 'opt': opt}, f)

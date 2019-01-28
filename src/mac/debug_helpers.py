@@ -4,7 +4,7 @@ import typing
 
 
 def check_shape(tensor: torch.Tensor,
-                match: typing.Tuple[typing.Optional[int], ...])\
+                match: typing.Tuple[typing.Optional[int], ...]) \
         -> torch.Tensor:
     for s, m in zip(tensor.shape, match):
         if m is None:
@@ -19,7 +19,8 @@ def check_shape(tensor: torch.Tensor,
 
 __debug__options__ = {
     'save_locals': False,
-    'locals': None
+    'locals': None,
+    'debug_stack': []
 }
 
 
@@ -32,6 +33,17 @@ def save_all_locals():
 
 def enable_debug():
     __debug__options__['save_locals'] = True
+
+
+def push_debug_state(new_state):
+    __debug__options__['debug_stack'].append(__debug__options__['save_locals'])
+    __debug__options__['save_locals'] = new_state
+
+
+def pop_debug_state():
+    new_state = __debug__options__['debug_stack'].pop(-1)
+    __debug__options__['save_locals'] = new_state
+    return new_state
 
 
 def get_saved_locals():
