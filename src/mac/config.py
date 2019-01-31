@@ -44,6 +44,7 @@ _config = {
     'work_limit': None,
     'step': 0,
     'summary_writer': None,
+    'check': True,
 }
 
 

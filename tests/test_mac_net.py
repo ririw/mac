@@ -20,7 +20,7 @@ def test_can_run():
 def test_nan_poison_question():
     batch_size, seq_len, ctrl_dim = 3, 11, 8
 
-    mac_cell = mac.MAC(4, ctrl_dim)
+    mac_cell = mac.MACRec(4, ctrl_dim)
     macnet = mac.MACNet(mac_cell)
     kb_image = torch.randn(batch_size, 1024, 14, 14)
     questions = torch.randn(batch_size, seq_len, 256)
@@ -37,7 +37,7 @@ def test_nan_poison_question():
 def test_nan_poison_image():
     batch_size, seq_len, ctrl_dim = 3, 11, 8
 
-    mac_cell = mac.MAC(4, ctrl_dim)
+    mac_cell = mac.MACRec(4, ctrl_dim)
     macnet = mac.MACNet(mac_cell)
     kb_image = torch.randn(batch_size, 1024, 14, 14)
     questions = torch.randn(batch_size, seq_len, 256)
