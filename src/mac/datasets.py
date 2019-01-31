@@ -107,7 +107,7 @@ class MAC_NP_Dataset(Dataset):
         ).reshape(-1, 1024, 14, 14)
         self.question = np.memmap(
             question_handle, dtype='float32', mode='r',
-        ).rehsape(-1, 160, 256)
+        ).reshape(-1, 160, 256)
 
         self.open_handles = [image_handle, image_ix_handle,
                              question_handle, answer_handle]

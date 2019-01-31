@@ -2,17 +2,16 @@ import datetime
 import os
 
 import fs
+import numpy as np
 import tensorboardX
 import torch
 import torch.nn.functional
 from fs import open_fs
 from plumbum import cli
-import numpy as np
 from torch.utils import data
 from tqdm import tqdm
 
-import mac.utils
-from mac import datasets, mac, config, utils
+from mac import datasets, config, utils, mac
 
 
 @utils.MAC.subcommand('train')
@@ -66,18 +65,22 @@ class Train(cli.Application):
 
     def train(self, net, train_dataset, writer, results_fs):
         use_cuda = config.getconfig()['use_cuda']
-
-        sampler = data.BatchSampler(
-            data.RandomSampler(train_dataset), self.batch_size, False)
         opt = torch.optim.Adam(net.parameters())
 
         if use_cuda:
             net = net.cuda()
 
-        for step, ix in enumerate(tqdm(sampler)):
-            self.train_step(ix, opt, use_cuda,
-                            train_dataset, net,
-                            writer, step, results_fs)
+        step = 0
+        for epoch in range(5):
+            sampler = tqdm(data.BatchSampler(
+                data.RandomSampler(train_dataset), self.batch_size, False),
+                desc='Epoch: {}'.format(epoch)
+            )
+            for ix in sampler:
+                self.train_step(ix, opt, use_cuda,
+                                train_dataset, net,
+                                writer, step, results_fs)
+                step += 1
 
     def train_step(self, ix, opt, use_cuda,
                    train_dataset, net, writer,

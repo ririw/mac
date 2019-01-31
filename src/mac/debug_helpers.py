@@ -2,10 +2,18 @@ import inspect
 import torch
 import typing
 
+from mac import config
+
 
 def check_shape(tensor: torch.Tensor,
                 match: typing.Tuple[typing.Optional[int], ...]) \
         -> torch.Tensor:
+    if not config.getconfig()['check']:
+        return tensor
+    if len(tensor.shape) != len(match):
+        msg = 'Shape {} does not match expectation {}'.format(
+            tensor.shape, match)
+        raise ValueError(msg)
     for s, m in zip(tensor.shape, match):
         if m is None:
             continue
@@ -20,7 +28,7 @@ def check_shape(tensor: torch.Tensor,
 __debug__options__ = {
     'save_locals': False,
     'locals': None,
-    'debug_stack': []
+    'debug_stack': [],
 }
 
 

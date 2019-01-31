@@ -53,33 +53,32 @@ class RUCell(torch.nn.Module):
         self.ctrl_dim = ctrl_dim
 
         self.mem_lin = torch.nn.Linear(ctrl_dim, ctrl_dim)
-        self.kb1_lin = torch.nn.Linear(ctrl_dim, ctrl_dim)
-        self.kb2_lin = torch.nn.Linear(ctrl_dim*2, ctrl_dim)
+        self.kb2_lin = torch.nn.Linear(ctrl_dim * 2, ctrl_dim)
         self.ctrl_lin = torch.nn.Linear(ctrl_dim, ctrl_dim)
 
     def forward(self, mem, kb, control):
         batch_size, ctrl_dim = mem.shape
         assert ctrl_dim == self.ctrl_dim
         kb_shape = (batch_size, self.im_w, self.im_h, ctrl_dim)
+        attn_shape = (batch_size, self.im_w, self.im_h)
         check_shape(kb, kb_shape)
         check_shape(control, (batch_size, ctrl_dim))
 
         mem_lin_1 = self.mem_lin(mem)
         check_shape(mem_lin_1, (batch_size, ctrl_dim))
-        kb1_lin_1 = self.kb1_lin(kb)
-        check_shape(kb1_lin_1, kb_shape)
-        direct_inter = torch.einsum('bc,bwhc->bwhc', mem_lin_1, kb1_lin_1)
+        direct_inter = torch.einsum('bc,bwhc->bwhc', mem_lin_1, kb)
         check_shape(direct_inter, kb_shape)
 
         second_inter = self.kb2_lin(torch.cat([direct_inter, kb], -1))
         check_shape(second_inter, kb_shape)
 
         weighted_control = torch.einsum('bc,bwhc->bwhc', control, second_inter)
-        ra = self.ctrl_lin(weighted_control)
-        rv = torch.nn.functional.softmax(ra, dim=1)
-        check_shape(rv, kb_shape)
+        ra = self.ctrl_lin(weighted_control).sum(-1)
+        check_shape(ra, attn_shape)
+        rv = torch.nn.Softmax(dim=-1)(ra.view(batch_size, -1)).view(attn_shape)
 
-        ri = torch.einsum('bwhc,bwhc->bc', kb, rv)
+        check_shape(rv, attn_shape)
+        ri = torch.einsum('bwhc,bwh->bc', kb, rv)
         check_shape(ri, (batch_size, ctrl_dim))
 
         save_all_locals()
@@ -93,7 +92,7 @@ class WUCell(torch.nn.Module):
         self.use_prev_control = use_prev_control
         self.ctrl_dim = ctrl_dim
 
-        self.mem_read_int = torch.nn.Linear(ctrl_dim*2, ctrl_dim)
+        self.mem_read_int = torch.nn.Linear(ctrl_dim * 2, ctrl_dim)
         if self.use_prev_control:
             self.mem_select = torch.nn.Linear(ctrl_dim, 1)
             self.mem_merge_info = torch.nn.Linear(ctrl_dim, ctrl_dim)
@@ -129,7 +128,7 @@ class WUCell(torch.nn.Module):
         if self.gate_mem:
             mem_ctrl = self.mem_gate(control).squeeze(1)
             ci = torch.sigmoid(mem_ctrl)
-            check_shape(m_info, (batch_size,))
+            check_shape(m_info, (batch_size, self.ctrl_dim))
             m_next = (torch.einsum('bd,b->bd', mem, ci)
                       + torch.einsum('bd,b->bd', m_info, 1 - ci))
         else:

@@ -26,7 +26,7 @@ def test_direct_inter():
     def err_cb():
         opt.zero_grad()
         ru(mem, kb, ctrl)
-        v = get_saved_locals()['direct_inter'][:, 0, 0, :]
+        v = get_saved_locals()['second_inter'][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         return err
@@ -95,7 +95,7 @@ def test_ra():
     mem = torch.zeros(batch_size, ctrl_dim)
     kb = torch.zeros(batch_size, 14, 14, ctrl_dim)
     ctrl = torch.ones(batch_size, ctrl_dim)
-    target = torch.zeros(batch_size, ctrl_dim)
+    target = torch.zeros(batch_size, 14)
 
     ru = RUCell(ctrl_dim)
     opt = torch.optim.Adam(ru.parameters())
@@ -108,7 +108,7 @@ def test_ra():
     for i in range(500):
         opt.zero_grad()
         ru(mem, kb, ctrl)
-        v = get_saved_locals()['ra'][:, 0, 0, :]
+        v = get_saved_locals()['ra'][:, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         opt.step()

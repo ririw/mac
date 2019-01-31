@@ -3,82 +3,6 @@ import torch.nn
 from mac import mac_cell, debug_helpers, config
 
 
-class MAC(torch.nn.Module):
-    def __init__(self, recurrence_length, ctrl_dim):
-        super().__init__()
-        self.recurrence_length = recurrence_length
-        self.ctrl_dim = ctrl_dim
-
-        self.control_cells = []
-        self.read_cells = []
-        self.write_cells = []
-
-        for i in range(recurrence_length):
-            cu_cell = mac_cell.CUCell(ctrl_dim)
-            ru_cell = mac_cell.RUCell(ctrl_dim)
-            wu_cell = mac_cell.WUCell(ctrl_dim)
-
-            self.add_module('control_{:d}'.format(i), cu_cell)
-            self.add_module('read_{:d}'.format(i), ru_cell)
-            self.add_module('write_{:d}'.format(i), wu_cell)
-            self.control_cells.append(cu_cell)
-            self.read_cells.append(ru_cell)
-            self.write_cells.append(wu_cell)
-
-        self.initial_control = torch.nn.Parameter(
-            torch.zeros(1, self.ctrl_dim))
-        self.initial_mem = torch.nn.Parameter(torch.zeros(1, self.ctrl_dim))
-        self.output_cell = mac_cell.OutputCell(ctrl_dim)
-
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        torch.nn.init.xavier_normal_(self.initial_control)
-        torch.nn.init.xavier_normal_(self.initial_mem)
-
-    def forward(self, question_words, image_vec, context_words):
-        batch_size, seq_len, ctrl_dim = context_words.shape
-        if ctrl_dim != self.ctrl_dim:
-            msg = 'Control dim mismatch, got {} but expected {}'\
-                .format(ctrl_dim, self.ctrl_dim)
-            raise ValueError(msg)
-        debug_helpers.check_shape(question_words, (batch_size, ctrl_dim))
-        debug_helpers.check_shape(image_vec, (batch_size, 14, 14, ctrl_dim))
-
-        ctrl = self.initial_control.expand(batch_size, self.ctrl_dim)
-        mem = self.initial_mem.expand(batch_size, self.ctrl_dim)
-        for i in range(self.recurrence_length):
-            cu_cell = self.control_cells[i]
-            ru_cell = self.read_cells[i]
-            wu_cell = self.write_cells[i]
-
-            ctrl = cu_cell(ctrl, context_words, question_words)
-            ri = ru_cell(mem, image_vec, ctrl)
-            mem = wu_cell(mem, ri, ctrl)
-            debug_helpers.check_shape(mem, (batch_size, ctrl_dim))
-            debug_helpers.check_shape(ri, (batch_size, ctrl_dim))
-            debug_helpers.check_shape(ctrl, (batch_size, ctrl_dim))
-
-            writer = config.get_writer_maybe()
-            if writer is not None:
-                writer.add_histogram(
-                    'control_{:d}.cq_lin.weight'.format(i),
-                    cu_cell.cq_lin.weight.detach().cpu().numpy(),
-                    bins='auto')
-                writer.add_histogram(
-                    'read_{:d}.cq_lin.weight'.format(i),
-                    ru_cell.ctrl_lin.weight.detach().cpu().numpy(),
-                    bins='auto')
-                writer.add_histogram(
-                    'write_{:d}.cq_lin.weight'.format(i),
-                    wu_cell.mem_read_int.weight.detach().cpu().numpy(),
-                    bins='auto')
-
-        output = self.output_cell(ctrl, mem)
-        debug_helpers.check_shape(output, (batch_size, 28))
-        return output
-
-
 class MACRec(torch.nn.Module):
     def __init__(self, recurrence_length, ctrl_dim):
         super().__init__()
@@ -113,11 +37,31 @@ class MACRec(torch.nn.Module):
         mem = self.initial_mem.expand(batch_size, self.ctrl_dim)
         writer = config.get_writer_maybe()
 
+        if writer is not None:
+            debug_helpers.push_debug_state(True)
         for i in range(self.recurrence_length):
             ctrl = self.cu_cell(ctrl, context_words, question_words)
+            if writer is not None:
+                ctrl_vars = debug_helpers.get_saved_locals()
+                attn = ctrl_vars['cv'].cpu().detach()
+                writer.add_image(
+                    'ctrl_attn/{}'.format(i),
+                    attn,
+                    config.getconfig()['step'])
+
             ri = self.ru_cell(mem, image_vec, ctrl)
             if writer is not None:
-                debug_helpers.push_debug_state(True)
+                ru_vars = debug_helpers.get_saved_locals()
+                attn = ru_vars['rv'].cpu().detach()
+                writer.add_image(
+                    'img_attn/{}'.format(i),
+                    attn[0],
+                    config.getconfig()['step'])
+                writer.add_image(
+                    'img/{}'.format(i),
+                    image_vec[0, :, :, 0],
+                    config.getconfig()['step'])
+
             mem = self.wu_cell(mem, ri, ctrl)
             if writer is not None:
                 wu_vars = debug_helpers.get_saved_locals()
@@ -136,10 +80,11 @@ class MACRec(torch.nn.Module):
                     wu_vars['mem'].cpu().detach().numpy(),
                     config.getconfig()['step'],
                     bins='auto')
-                debug_helpers.pop_debug_state()
             debug_helpers.check_shape(mem, (batch_size, ctrl_dim))
             debug_helpers.check_shape(ri, (batch_size, ctrl_dim))
             debug_helpers.check_shape(ctrl, (batch_size, ctrl_dim))
+        if writer is not None:
+            debug_helpers.pop_debug_state()
 
         if writer is not None:
             cfg = config.getconfig()
@@ -168,14 +113,14 @@ class MACRec(torch.nn.Module):
 
 
 class MACNet(torch.nn.Module):
-    def __init__(self, mac: MAC):
+    def __init__(self, mac: MACRec):
         super().__init__()
         self.ctrl_dim = mac.ctrl_dim
         if self.ctrl_dim % 2:
             msg = 'Control dim must be divisible by 2, ' \
                   'passed {}'.format(self.ctrl_dim)
             raise ValueError(msg)
-        self.mac: MAC = mac
+        self.mac: MACRec = mac
         self.kb_mapper = torch.nn.Conv2d(1024, self.ctrl_dim, 3, padding=1)
 
         self.lstm_processor = torch.nn.LSTM(
