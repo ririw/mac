@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.utils.data
 
-from mac import inputs
+from mac import preprocessing
 from mac.config import getconfig
 
 
@@ -15,7 +15,7 @@ def test_input_trf():
     input_dataset = ConcatDataset(input_data)
 
     with fs.tempfs.TempFS() as output_fs:
-        inputs.image_preprocess(
+        preprocessing.image_preprocess(
             'dummy', input_dataset, output_fs,
             batch_size=4)
 

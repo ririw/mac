@@ -3,6 +3,8 @@ MAC input unit.
 """
 import json
 import os
+import pickle
+import re
 
 import numpy as np
 import skimage.io
@@ -223,3 +225,27 @@ class CLEVRImageData(data.Dataset):
         if self.work_limit is not None:
             return min(self.work_limit, len(self.images))
         return len(self.images)
+
+
+def preprocess_questions(dataset_name, input_fs, output_fs):
+    fn = '/questions/CLEVR_{}_questions.json'.format(dataset_name)
+    with input_fs.open(fn, 'r') as f:
+        ds = json.load(f)
+
+    result_data = []
+    answer_map = getconfig()['answer_mapping']
+    for qn in ds['questions']:
+        image = qn['image_index']
+        answer_text = qn['answer']
+        answer = answer_map[answer_text]
+        question = qn['question'].lower().replace('?', '').replace(';', '')
+        assert re.match('^[a-z ]*$', question), 'Mismatch: ' + question
+        result_data.append({
+            'question': question,
+            'image': image,
+            'answer': answer,
+            'answer_text': answer_text,
+        })
+
+    with output_fs.open('dataset_{}.pkl'.format(dataset_name), 'wb') as f:
+        pickle.dump(result_data, f)

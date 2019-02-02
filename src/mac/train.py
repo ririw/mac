@@ -27,14 +27,14 @@ class Train(cli.Application):
         np.printoptions(linewidth=139)
 
         mac_cell = mac.MACRec(6, 256)
-        net = mac.MACNet(mac_cell)
+        net = mac.MACNet(mac_cell, 5000)
         nowtime = str(datetime.datetime.now())
         writer = tensorboardX.SummaryWriter(os.path.join(log_loc, nowtime))
         results_fs = open_fs(results_loc, create=True)
 
         config.setconfig('summary_writer', writer)
 
-        with datasets.MAC_NP_Dataset(preprocessed_loc, 'train') as train_ds:
+        with datasets.MAC_JSON_Dataset(preprocessed_loc, 'train') as train_ds:
             try:
                 if self.memorize:
                     self.train_memorize(net, train_ds, writer, results_fs)
@@ -88,14 +88,12 @@ class Train(cli.Application):
         config.setconfig('step', step)
 
         opt.zero_grad()
-        answer, question, image_ix, image = train_dataset[ix]
+        answer, question, image = train_dataset[ix]
         answer = torch.Tensor(answer).long()
-        question = torch.Tensor(question)
         image = torch.Tensor(image)
 
         if use_cuda:
             answer = answer.cuda()
-            question = question.cuda()
             image = image.cuda()
 
         result = net.forward(image, question)

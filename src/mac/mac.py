@@ -1,5 +1,5 @@
 import torch.nn
-
+import numpy as np
 from mac import mac_cell, debug_helpers, config
 
 
@@ -113,8 +113,9 @@ class MACRec(torch.nn.Module):
 
 
 class MACNet(torch.nn.Module):
-    def __init__(self, mac: MACRec):
+    def __init__(self, mac: MACRec, total_words):
         super().__init__()
+
         self.ctrl_dim = mac.ctrl_dim
         if self.ctrl_dim % 2:
             msg = 'Control dim must be divisible by 2, ' \
@@ -123,8 +124,10 @@ class MACNet(torch.nn.Module):
         self.mac: MACRec = mac
         self.kb_mapper = torch.nn.Conv2d(1024, self.ctrl_dim, 3, padding=1)
 
+        self.embedder = LazyEmbedding(total_words, self.ctrl_dim)
         self.lstm_processor = torch.nn.LSTM(
-            256, self.ctrl_dim//2, bidirectional=True, batch_first=True)
+            self.ctrl_dim, self.ctrl_dim//2,
+            bidirectional=True, batch_first=True)
         self.lstm_h0 = torch.nn.Parameter(torch.zeros(2, 1, self.ctrl_dim//2))
         self.lstm_c0 = torch.nn.Parameter(torch.zeros(2, 1, self.ctrl_dim//2))
 
@@ -141,10 +144,8 @@ class MACNet(torch.nn.Module):
                   'got {} and {} respectively'.format(
                     batch_size, len(questions))
             raise ValueError(msg)
-        seq_len = questions.shape[1]
 
         debug_helpers.check_shape(kb, (batch_size, 1024, 14, 14))
-        debug_helpers.check_shape(questions, (batch_size, seq_len, 256))
 
         kb_reduced = self.kb_mapper(kb)
         expected_kb_size = (batch_size, self.ctrl_dim, 14, 14)
@@ -154,16 +155,49 @@ class MACNet(torch.nn.Module):
         h0 = self.lstm_h0.expand(h0_c0_size).contiguous()
         c0 = self.lstm_c0.expand(h0_c0_size).contiguous()
 
-        lstm_out, (hn, cn) = self.lstm_processor(questions, (h0, c0))
+        question_tensors = self.embedder(questions)
+        debug_helpers.check_shape(
+            question_tensors, (batch_size, None, self.ctrl_dim))
+        lstm_out, (hn, cn) = self.lstm_processor(question_tensors, (h0, c0))
 
         hn_concat = torch.cat([hn[0], hn[1]], -1)
-        cn_concat = torch.cat([hn[0], hn[1]], -1)
         debug_helpers.check_shape(hn_concat, (batch_size, self.ctrl_dim))
-        debug_helpers.check_shape(cn_concat, (batch_size, self.ctrl_dim))
-        debug_helpers.check_shape(
-            lstm_out, (batch_size, seq_len, self.ctrl_dim))
+        debug_helpers.check_shape(lstm_out, (batch_size, None, self.ctrl_dim))
 
         kb_tf = kb_reduced.transpose(3, 1)
         res = self.mac.forward(hn_concat, kb_tf, lstm_out)
         debug_helpers.save_all_locals()
         return res
+
+
+class LazyEmbedding(torch.nn.Module):
+    def __init__(self, max_words, embedding_dim):
+        super().__init__()
+        self.word_ix = {0: -1}
+        self.embedding = torch.nn.Embedding(max_words+1, embedding_dim)
+
+    def forward(self, scentences):
+        tensors = []
+        for scent in scentences:
+            scent_ix = []
+            for w in scent.split(' '):
+                if w not in self.word_ix:
+                    self.word_ix[w] = len(self.word_ix)
+                    if len(self.word_ix) > self.embedding.num_embeddings:
+                        raise IndexError('Too many words!')
+                scent_ix.append(self.word_ix[w])
+            assert scent_ix, 'Failed to parse "{}"'.format(scent)
+            tensor = torch.from_numpy(np.array(scent_ix, np.int32))
+            if self.embedding.weight.is_cuda:
+                tensor = tensor.cuda()
+            tensors.append(tensor)
+
+        lengths = [t.shape[0] for t in tensors]
+        len_ord = np.argsort(lengths)[::-1]
+        len_ordered = [tensors[i] for i in len_ord]
+
+        packed = torch.nn.utils.rnn.pack_sequence(len_ordered)
+        padded = torch.nn.utils.rnn.pad_packed_sequence(
+            packed, batch_first=True)[0]
+        padded_ordered = padded[np.argsort(len_ord)].long().contiguous()
+        return self.embedding(padded_ordered)

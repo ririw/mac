@@ -6,7 +6,7 @@ import torch
 import torchvision.models.resnet
 from plumbum import cli
 
-from mac import inputs, config, utils, train
+from mac import preprocessing, config, utils, train
 
 _used_no_del_by_flake8_ = [
     train
@@ -61,14 +61,14 @@ class Preprocess(cli.Application):
         zf = fs.open_fs(clevr_fs)
         out_fs = fs.open_fs(preprocessed_loc, create=True)
 
-        inputs.lang_preprocess('train', zf, out_fs)
+        preprocessing.preprocess_questions('train', zf, out_fs)
+        preprocessing.preprocess_questions('val', zf, out_fs)
         with zf.opendir('images/train/') as data_fs:
-            ds = inputs.CLEVRImageData(data_fs, self.limit)
-            inputs.image_preprocess('train', ds, out_fs)
-        inputs.lang_preprocess('val', zf, out_fs)
+            ds = preprocessing.CLEVRImageData(data_fs, self.limit)
+            preprocessing.image_preprocess('train', ds, out_fs)
         with zf.opendir('images/val/') as data_fs:
-            ds = inputs.CLEVRImageData(data_fs, self.limit)
-            inputs.image_preprocess('val', ds, out_fs)
+            ds = preprocessing.CLEVRImageData(data_fs, self.limit)
+            preprocessing.image_preprocess('val', ds, out_fs)
 
         zf.close()
 
