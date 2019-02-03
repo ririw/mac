@@ -5,6 +5,7 @@ RUN pip3 install nose numpy scipy flake8
 RUN pip3 install fs tqdm scikit-image
 RUN pip3 install allennlp
 RUN pip3 install torchvision "wrapt<1.11.0"
+RUN pip3 install attrs
 
 # Pre-download weights files for resnet101
 RUN python -c "from torchvision.models import resnet101; resnet101(True)"

@@ -2,7 +2,6 @@ import json
 import pickle
 
 import attr
-import numpy as np
 
 from mac import config
 

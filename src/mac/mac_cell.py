@@ -66,7 +66,7 @@ class RUCell(torch.nn.Module):
         kb = kb.permute(0, 2, 3, 1)
         check_shape(kb, (batch_size, 14, 14, ctrl_dim))
 
-        mem_trfed = self.mem_trf(mem);
+        mem_trfed = self.mem_trf(mem)
         check_shape(mem_trfed, (batch_size, ctrl_dim))
 
         mem_kb_inter = torch.einsum('bc,bwhc->bwhc', mem_trfed, kb)
@@ -76,13 +76,14 @@ class RUCell(torch.nn.Module):
         check_shape(mem_kb_inter_cat_trf, (batch_size, 14, 14, ctrl_dim))
 
         ctrled = torch.einsum('bwhc,bc->bwhc', mem_kb_inter_cat_trf, control)
-        attended = self.attn(ctrled).view(batch_size, -1)
-        check_shape(attended, (batch_size, 14 * 14))
-        attended_flat = F.softmax(attended, dim=-1).view(batch_size, 14, 14)
-        check_shape(attended_flat, (batch_size, 14, 14))
+        attended_flat = self.attn(ctrled).view(batch_size, -1)
+        check_shape(attended_flat, (batch_size, 14 * 14))
+        attended = F.softmax(attended_flat, dim=-1).view(batch_size, 14, 14)
+        check_shape(attended, (batch_size, 14, 14))
 
-        retrieved = torch.einsum('bwhc,bwh->bc', kb, attended_flat)
+        retrieved = torch.einsum('bwhc,bwh->bc', kb, attended)
         check_shape(retrieved, (batch_size, ctrl_dim))
+        save_all_locals()
         return retrieved
 
 

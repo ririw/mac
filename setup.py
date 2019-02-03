@@ -21,7 +21,7 @@ requirements = [
     'scikit-image',
     'allennlp',
     'tensorboardX',
-    'attr'
+    'attrs'
 ]
 
 setup_requirements = []

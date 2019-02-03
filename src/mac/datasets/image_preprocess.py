@@ -1,12 +1,10 @@
-import os
-
+import numpy as np
+import torch
 from PIL import Image
 from fs.base import FS
 from torch.utils import data
-import torch
 from torchvision.models import resnet101
 from torchvision.transforms import transforms
-import numpy as np
 from tqdm import tqdm
 
 from mac import config
@@ -77,4 +75,3 @@ def get_resnet():
         resnet.layer3,
     )
     return preproc_net
-

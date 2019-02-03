@@ -1,4 +1,4 @@
-attr
+attrs
 click
 h5py
 plumbum

@@ -15,4 +15,4 @@ class Train(cli.Application):
         preproc_fs = open_fs(preproc_dir, create=True)
 
         dataset = datasets.TaskDataset(clevr_fs, preproc_fs, 'val')
-        print(dataset[[3,4,5]])
+        print(dataset[[3, 4, 5]])
