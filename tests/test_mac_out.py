@@ -4,7 +4,7 @@ import torch
 import torch.functional
 import torch.nn.functional
 
-from mac.mac_cell import OutputCell
+from mac.mac import OutputCell
 
 
 def test_simple_case():
@@ -17,7 +17,7 @@ def test_simple_case():
     for i in range(1000):
         opt.zero_grad()
         mem = torch.randn(batch_size, ctrl_dim)
-        control = torch.randn(batch_size, ctrl_dim)
+        control = torch.randn(batch_size, ctrl_dim*2)
         target = torch.zeros(batch_size, 28)
         target[np.arange(batch_size), torch.argmax(control, 1)] = 1
 

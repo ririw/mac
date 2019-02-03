@@ -1,7 +1,7 @@
 import torch
 import torch.functional
 import torch.nn.functional
-from mac.mac_cell import RUCell
+from mac.mac import RUCell
 from mac.debug_helpers import get_saved_locals, enable_debug
 import nose.tools
 import numpy as np

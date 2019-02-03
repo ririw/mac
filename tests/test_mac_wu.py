@@ -3,7 +3,7 @@ import torch
 import torch.functional
 import torch.nn.functional
 
-from mac.mac_cell import WUCell
+from mac.mac import WUCell
 
 
 def test_remember_everything():

@@ -1,10 +1,8 @@
+import numpy as np
 import torch
-from torch.nn.utils.rnn import pack_sequence
-
 from torch.utils import data
 
 from mac import config
-import numpy as np
 from mac.datasets import image_preprocess, qn_preprocess
 
 
@@ -27,17 +25,25 @@ class TaskDataset(data.Dataset):
             qn = self.questions[ix]
             img_ixs.append(qn.image_ix)
             answers.append(qn.answer_ix)
-            qns_ixs.append(torch.from_numpy(np.array(qn.qn_ixs)).to(td))
+            qns_ixs.append(qn.qn_ixs)
+
         len_ord = np.argsort([len(q) for q in qns_ixs])[::-1]
         answers = np.asarray(answers)
         img_ixs = np.asarray(img_ixs)[len_ord]
         images = self.images[img_ixs]
-        packed_qns = pack_sequence([qns_ixs[i] for i in len_ord])
+        ordered_qns = [qns_ixs[i] for i in len_ord]
+
+        qn_lengths = np.asarray([len(q) for q in ordered_qns], np.int64)
+        qn_words = np.zeros((len(answers), max(qn_lengths)), np.int64)
+        for ix, q in enumerate(ordered_qns):
+            qn_words[ix, :qn_lengths[ix]] = q
 
         answers = torch.from_numpy(answers).to(td)
         images = torch.from_numpy(images).to(td)
+        qns = torch.from_numpy(qn_words).to(td)
+        qn_lens = torch.from_numpy(qn_lengths).to(td)
 
-        return images, packed_qns, answers
+        return images, qns, qn_lens, answers
 
     def __len__(self):
         return self.images.shape[0]
