@@ -20,7 +20,8 @@ requirements = [
     'tqdm',
     'scikit-image',
     'allennlp',
-    'tensorboardX'
+    'tensorboardX',
+    'attr'
 ]
 
 setup_requirements = []

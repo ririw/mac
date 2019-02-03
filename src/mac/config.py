@@ -48,6 +48,12 @@ _config = {
 }
 
 
+def torch_device():
+    if getconfig()['use_cuda']:
+        return 'cuda'
+    else:
+        return 'cpu'
+
 def getconfig():
     return _config
 
