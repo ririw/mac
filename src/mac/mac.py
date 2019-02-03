@@ -1,6 +1,7 @@
-import torch.nn
 import numpy as np
-from mac import mac_cell, debug_helpers, config
+import torch.nn
+
+from mac import mac_cell, debug_helpers
 
 
 class MACRec(torch.nn.Module):
@@ -9,7 +10,7 @@ class MACRec(torch.nn.Module):
         self.recurrence_length = recurrence_length
         self.ctrl_dim = ctrl_dim
 
-        self.cu_cell = mac_cell.CUCell(ctrl_dim)
+        self.cu_cell = mac_cell.CUCell(ctrl_dim, recurrence_length)
         self.ru_cell = mac_cell.RUCell(ctrl_dim)
         self.wu_cell = mac_cell.WUCell(ctrl_dim)
 
@@ -31,81 +32,18 @@ class MACRec(torch.nn.Module):
                 .format(ctrl_dim, self.ctrl_dim)
             raise ValueError(msg)
         debug_helpers.check_shape(question_words, (batch_size, ctrl_dim))
-        debug_helpers.check_shape(image_vec, (batch_size, 14, 14, ctrl_dim))
+        debug_helpers.check_shape(image_vec, (batch_size, ctrl_dim, 14, 14))
 
         ctrl = self.initial_control.expand(batch_size, self.ctrl_dim)
         mem = self.initial_mem.expand(batch_size, self.ctrl_dim)
-        writer = config.get_writer_maybe()
 
-        if writer is not None:
-            debug_helpers.push_debug_state(True)
         for i in range(self.recurrence_length):
-            ctrl = self.cu_cell(ctrl, context_words, question_words)
-            if writer is not None:
-                ctrl_vars = debug_helpers.get_saved_locals()
-                attn = ctrl_vars['cv'].cpu().detach()
-                writer.add_image(
-                    'ctrl_attn/{}'.format(i),
-                    attn,
-                    config.getconfig()['step'])
-
+            ctrl = self.cu_cell(i, ctrl, context_words, question_words)
             ri = self.ru_cell(mem, image_vec, ctrl)
-            if writer is not None:
-                ru_vars = debug_helpers.get_saved_locals()
-                attn = ru_vars['rv'].cpu().detach()
-                writer.add_image(
-                    'img_attn/{}'.format(i),
-                    attn[0],
-                    config.getconfig()['step'])
-                writer.add_image(
-                    'img/{}'.format(i),
-                    image_vec[0, :, :, 0],
-                    config.getconfig()['step'])
-
             mem = self.wu_cell(mem, ri, ctrl)
-            if writer is not None:
-                wu_vars = debug_helpers.get_saved_locals()
-                writer.add_histogram(
-                    'ci/{}'.format(i),
-                    wu_vars['ci'].cpu().detach().numpy(),
-                    config.getconfig()['step'],
-                    bins='auto')
-                writer.add_histogram(
-                    'mem_ctrl/{}'.format(i),
-                    wu_vars['mem_ctrl'].cpu().detach().numpy(),
-                    config.getconfig()['step'],
-                    bins='auto')
-                writer.add_histogram(
-                    'mem/{}'.format(i),
-                    wu_vars['mem'].cpu().detach().numpy(),
-                    config.getconfig()['step'],
-                    bins='auto')
             debug_helpers.check_shape(mem, (batch_size, ctrl_dim))
             debug_helpers.check_shape(ri, (batch_size, ctrl_dim))
             debug_helpers.check_shape(ctrl, (batch_size, ctrl_dim))
-        if writer is not None:
-            debug_helpers.pop_debug_state()
-
-        if writer is not None:
-            cfg = config.getconfig()
-            writer.add_histogram(
-                'control.cq_lin.weight',
-                self.cu_cell.cq_lin.weight.detach().cpu().numpy(),
-                cfg['step'],
-                bins='auto',
-            )
-            writer.add_histogram(
-                'read.cq_lin.weight',
-                self.ru_cell.ctrl_lin.weight.detach().cpu().numpy(),
-                cfg['step'],
-                bins='auto',
-            )
-            writer.add_histogram(
-                'write.cq_lin.weight',
-                self.wu_cell.mem_read_int.weight.detach().cpu().numpy(),
-                cfg['step'],
-                bins='auto',
-            )
 
         output = self.output_cell(ctrl, mem)
         debug_helpers.check_shape(output, (batch_size, 28))
@@ -158,14 +96,13 @@ class MACNet(torch.nn.Module):
         question_tensors = self.embedder(questions)
         debug_helpers.check_shape(
             question_tensors, (batch_size, None, self.ctrl_dim))
-        lstm_out, (hn, cn) = self.lstm_processor(question_tensors, (h0, c0))
+        lstm_out, (hn, _) = self.lstm_processor(question_tensors, (h0, c0))
 
         hn_concat = torch.cat([hn[0], hn[1]], -1)
         debug_helpers.check_shape(hn_concat, (batch_size, self.ctrl_dim))
         debug_helpers.check_shape(lstm_out, (batch_size, None, self.ctrl_dim))
 
-        kb_tf = kb_reduced.transpose(3, 1)
-        res = self.mac.forward(hn_concat, kb_tf, lstm_out)
+        res = self.mac.forward(hn_concat, kb_reduced, lstm_out)
         debug_helpers.save_all_locals()
         return res
 

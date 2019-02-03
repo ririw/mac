@@ -3,26 +3,32 @@ import typing
 import torch
 import torch.nn
 import torch.nn.functional
+import torch.nn.functional as F
 
 from mac.debug_helpers import check_shape, save_all_locals
 
 
 class CUCell(torch.nn.Module):
-    def __init__(self, ctrl_dim):
+    def __init__(self, ctrl_dim, recurrence_length):
         super().__init__()
         self.ctrl_dim = ctrl_dim
 
+        self.step_trf = torch.nn.ModuleList(
+            torch.nn.Linear(ctrl_dim, ctrl_dim)
+            for _ in range(recurrence_length)
+        )
         self.ca_lin = torch.nn.Linear(ctrl_dim, 1)
         self.cq_lin = torch.nn.Linear(ctrl_dim * 2, ctrl_dim)
 
-    def forward(self, prev_ctrl, context_words, question_words):
+    def forward(self, step, prev_ctrl, context_words, question_words):
         batch_size, seq_len, ctrl_dim = context_words.shape
         assert ctrl_dim == self.ctrl_dim
-
         check_shape(prev_ctrl, (batch_size, ctrl_dim))
         check_shape(question_words, (batch_size, ctrl_dim))
 
-        c_concat = torch.cat([prev_ctrl, question_words], 1)
+        question_words_localized = self.step_trf[step](question_words)
+
+        c_concat = torch.cat([prev_ctrl, question_words_localized], 1)
         check_shape(c_concat, (batch_size, ctrl_dim * 2))
         cq = self.cq_lin(c_concat)
         check_shape(cq, (batch_size, ctrl_dim))
@@ -44,45 +50,42 @@ class CUCell(torch.nn.Module):
 class RUCell(torch.nn.Module):
     default_image_size = (14, 14)
 
-    def __init__(self, ctrl_dim: int,
-                 image_size: typing.Optional[typing.Tuple[int, int]] = None):
+    def __init__(self, ctrl_dim: int):
         super().__init__()
-        if image_size is None:
-            image_size = self.default_image_size
-        self.im_w, self.im_h = image_size
         self.ctrl_dim = ctrl_dim
 
-        self.mem_lin = torch.nn.Linear(ctrl_dim, ctrl_dim)
-        self.kb2_lin = torch.nn.Linear(ctrl_dim * 2, ctrl_dim)
-        self.ctrl_lin = torch.nn.Linear(ctrl_dim, ctrl_dim)
+        self.mem_trf = torch.nn.Linear(ctrl_dim, ctrl_dim)
+        self.ctrl_lin = torch.nn.Linear(ctrl_dim*2, ctrl_dim)
+        self.attn = torch.nn.Linear(ctrl_dim, 1)
 
     def forward(self, mem, kb, control):
         batch_size, ctrl_dim = mem.shape
         assert ctrl_dim == self.ctrl_dim
-        kb_shape = (batch_size, self.im_w, self.im_h, ctrl_dim)
-        attn_shape = (batch_size, self.im_w, self.im_h)
+
+        kb_shape = (batch_size, ctrl_dim, 14, 14)
         check_shape(kb, kb_shape)
         check_shape(control, (batch_size, ctrl_dim))
+        kb = kb.permute(0, 2, 3, 1)
+        check_shape(kb, (batch_size, 14, 14, ctrl_dim))
 
-        mem_lin_1 = self.mem_lin(mem)
-        check_shape(mem_lin_1, (batch_size, ctrl_dim))
-        direct_inter = torch.einsum('bc,bwhc->bwhc', mem_lin_1, kb)
-        check_shape(direct_inter, kb_shape)
+        mem_trfed = self.mem_trf(mem); check_shape(mem_trfed, (batch_size, ctrl_dim))
 
-        second_inter = self.kb2_lin(torch.cat([direct_inter, kb], -1))
-        check_shape(second_inter, kb_shape)
+        mem_kb_inter = torch.einsum('bc,bwhc->bwhc', mem_trfed, kb)
+        mem_kb_inter_cat = torch.cat([mem_kb_inter, kb], -1)
+        check_shape(mem_kb_inter_cat, (batch_size, 14, 14, ctrl_dim*2))
+        mem_kb_inter_cat_trf = self.ctrl_lin(mem_kb_inter_cat)
+        check_shape(mem_kb_inter_cat_trf, (batch_size, 14, 14, ctrl_dim))
 
-        weighted_control = torch.einsum('bc,bwhc->bwhc', control, second_inter)
-        ra = self.ctrl_lin(weighted_control).sum(-1)
-        check_shape(ra, attn_shape)
-        rv = torch.nn.Softmax(dim=-1)(ra.view(batch_size, -1)).view(attn_shape)
+        ctrled = torch.einsum('bwhc,bc->bwhc', mem_kb_inter_cat_trf, control)
+        attended = self.attn(ctrled).view(batch_size, -1)
+        check_shape(attended, (batch_size, 14*14))
+        attended_flat = F.softmax(attended, dim=-1).view(batch_size, 14, 14)
+        check_shape(attended_flat, (batch_size, 14, 14))
 
-        check_shape(rv, attn_shape)
-        ri = torch.einsum('bwhc,bwh->bc', kb, rv)
-        check_shape(ri, (batch_size, ctrl_dim))
+        retrieved = torch.einsum('bwhc,bwh->bc', kb, attended_flat)
+        check_shape(retrieved, (batch_size, ctrl_dim))
+        return retrieved
 
-        save_all_locals()
-        return ri
 
 
 class WUCell(torch.nn.Module):

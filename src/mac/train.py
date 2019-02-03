@@ -26,7 +26,7 @@ class Train(cli.Application):
         utils.cuda_message()
         np.printoptions(linewidth=139)
 
-        mac_cell = mac.MACRec(6, 256)
+        mac_cell = mac.MACRec(12, 512)
         net = mac.MACNet(mac_cell, 5000)
         nowtime = str(datetime.datetime.now())
         writer = tensorboardX.SummaryWriter(os.path.join(log_loc, nowtime))
