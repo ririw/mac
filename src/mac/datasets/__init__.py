@@ -10,14 +10,12 @@ from mac.datasets import image_preprocess, qn_preprocess
 
 class TaskDataset(data.Dataset):
     def __init__(self, clevr_fs, output_fs, split):
-        self.images = image_preprocess.get_preprocess_images(
-            clevr_fs, output_fs, split)
+        self.images = image_preprocess.get_preprocess_images(clevr_fs, output_fs, split)
         if split == 'train':
             self.questions, word_ix = qn_preprocess.get_preprocess_questions(
                 clevr_fs, output_fs, split)
         else:
-            _, word_ix = qn_preprocess.get_preprocess_questions(
-                clevr_fs, output_fs, 'train')
+            _, word_ix = qn_preprocess.get_preprocess_questions(clevr_fs, output_fs, 'train')
             self.questions, _ = qn_preprocess.get_preprocess_questions(
                 clevr_fs, output_fs, split, word_ix)
         self.word_ix = word_ix

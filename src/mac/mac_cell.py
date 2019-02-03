@@ -12,9 +12,7 @@ class CUCell(torch.nn.Module):
         self.ctrl_dim = ctrl_dim
 
         self.step_trf = torch.nn.ModuleList(
-            torch.nn.Linear(ctrl_dim, ctrl_dim)
-            for _ in range(recurrence_length)
-        )
+            torch.nn.Linear(ctrl_dim, ctrl_dim) for _ in range(recurrence_length))
         self.ca_lin = torch.nn.Linear(ctrl_dim, 1)
         self.cq_lin = torch.nn.Linear(ctrl_dim * 2, ctrl_dim)
 
@@ -98,8 +96,7 @@ class WUCell(torch.nn.Module):
         if self.use_prev_control:
             self.mem_select = torch.nn.Linear(ctrl_dim, 1)
             self.mem_merge_info = torch.nn.Linear(ctrl_dim, ctrl_dim)
-            self.mem_merge_other = torch.nn.Linear(
-                ctrl_dim, ctrl_dim, bias=False)
+            self.mem_merge_other = torch.nn.Linear(ctrl_dim, ctrl_dim, bias=False)
         if self.gate_mem:
             self.mem_gate = torch.nn.Linear(ctrl_dim, 1)
 
@@ -116,23 +113,19 @@ class WUCell(torch.nn.Module):
         check_shape(m_info, (batch_size, ctrl_dim))
 
         if prev_control is not None:
-            control_similarity = torch.einsum(
-                'bsd,bd->bsd', prev_control, control)
+            control_similarity = torch.einsum('bsd,bd->bsd', prev_control, control)
             control_expweight = self.mem_select(control_similarity)
             check_shape(control_expweight, (batch_size, None, 1))
-            sa = torch.nn.functional.softmax(
-                control_similarity.squeeze(2), dim=1)
+            sa = torch.nn.functional.softmax(control_similarity.squeeze(2), dim=1)
             m_other = torch.einsum('bs,bsd->bd', sa, prev_control)
-            m_info = (self.mem_merge_other(m_other)
-                      + self.mem_merge_info(m_info))
+            m_info = (self.mem_merge_other(m_other) + self.mem_merge_info(m_info))
         check_shape(m_info, (batch_size, ctrl_dim))
 
         if self.gate_mem:
             mem_ctrl = self.mem_gate(control).squeeze(1)
             ci = torch.sigmoid(mem_ctrl)
             check_shape(m_info, (batch_size, self.ctrl_dim))
-            m_next = (torch.einsum('bd,b->bd', mem, ci)
-                      + torch.einsum('bd,b->bd', m_info, 1 - ci))
+            m_next = (torch.einsum('bd,b->bd', mem, ci) + torch.einsum('bd,b->bd', m_info, 1 - ci))
         else:
             m_next = m_info
 

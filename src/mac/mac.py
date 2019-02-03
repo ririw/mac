@@ -14,10 +14,8 @@ class MACRec(torch.nn.Module):
         self.ru_cell = mac_cell.RUCell(ctrl_dim)
         self.wu_cell = mac_cell.WUCell(ctrl_dim)
 
-        self.initial_control = torch.nn.Parameter(
-            torch.zeros(1, self.ctrl_dim))
-        self.initial_mem = torch.nn.Parameter(
-            torch.zeros(1, self.ctrl_dim), requires_grad=False)
+        self.initial_control = torch.nn.Parameter(torch.zeros(1, self.ctrl_dim))
+        self.initial_mem = torch.nn.Parameter(torch.zeros(1, self.ctrl_dim), requires_grad=False)
         self.output_cell = mac_cell.OutputCell(ctrl_dim)
 
         self.reset_parameters()
@@ -56,16 +54,14 @@ class MACNet(torch.nn.Module):
 
         self.ctrl_dim = mac.ctrl_dim
         if self.ctrl_dim % 2:
-            msg = 'Control dim must be divisible by 2, ' \
-                  'passed {}'.format(self.ctrl_dim)
+            msg = 'Control dim must be divisible by 2, passed {}'.format(self.ctrl_dim)
             raise ValueError(msg)
         self.mac: MACRec = mac
         self.kb_mapper = torch.nn.Conv2d(1024, self.ctrl_dim, 3, padding=1)
 
         self.embedder = LazyEmbedding(total_words, self.ctrl_dim)
         self.lstm_processor = torch.nn.LSTM(
-            self.ctrl_dim, self.ctrl_dim//2,
-            bidirectional=True, batch_first=True)
+            self.ctrl_dim, self.ctrl_dim//2, bidirectional=True, batch_first=True)
         self.lstm_h0 = torch.nn.Parameter(torch.zeros(2, 1, self.ctrl_dim//2))
         self.lstm_c0 = torch.nn.Parameter(torch.zeros(2, 1, self.ctrl_dim//2))
 
@@ -79,8 +75,7 @@ class MACNet(torch.nn.Module):
         batch_size = kb.shape[0]
         if len(questions) != batch_size:
             msg = 'KB size and number of questions should be equal, ' \
-                  'got {} and {} respectively'.format(
-                    batch_size, len(questions))
+                  'got {} and {} respectively'.format(batch_size, len(questions))
             raise ValueError(msg)
 
         debug_helpers.check_shape(kb, (batch_size, 1024, 14, 14))
@@ -94,8 +89,7 @@ class MACNet(torch.nn.Module):
         c0 = self.lstm_c0.expand(h0_c0_size).contiguous()
 
         question_tensors = self.embedder(questions)
-        debug_helpers.check_shape(
-            question_tensors, (batch_size, None, self.ctrl_dim))
+        debug_helpers.check_shape(question_tensors, (batch_size, None, self.ctrl_dim))
         lstm_out, (hn, _) = self.lstm_processor(question_tensors, (h0, c0))
 
         hn_concat = torch.cat([hn[0], hn[1]], -1)
@@ -134,7 +128,6 @@ class LazyEmbedding(torch.nn.Module):
         len_ordered = [tensors[i] for i in len_ord]
 
         packed = torch.nn.utils.rnn.pack_sequence(len_ordered)
-        padded = torch.nn.utils.rnn.pad_packed_sequence(
-            packed, batch_first=True)[0]
+        padded = torch.nn.utils.rnn.pad_packed_sequence(packed, batch_first=True)[0]
         padded_ordered = padded[np.argsort(len_ord)].long().contiguous()
         return self.embedding(padded_ordered)

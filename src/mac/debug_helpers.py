@@ -11,15 +11,13 @@ def check_shape(tensor: torch.Tensor,
     if not config.getconfig()['check']:
         return tensor
     if len(tensor.shape) != len(match):
-        msg = 'Shape {} does not match expectation {}'.format(
-            tensor.shape, match)
+        msg = 'Shape {} does not match expectation {}'.format(tensor.shape, match)
         raise ValueError(msg)
     for s, m in zip(tensor.shape, match):
         if m is None:
             continue
         if s != m:
-            msg = 'Shape {} does not match expectation {}'.format(
-                tensor.shape, match)
+            msg = 'Shape {} does not match expectation {}'.format(tensor.shape, match)
             raise ValueError(msg)
 
     return tensor

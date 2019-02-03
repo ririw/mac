@@ -12,4 +12,4 @@ ignored-classes = numpy, numpy.testing
 
 [FORMAT]
 # Maximum number of characters on a single line.
-max-line-length=80
+max-line-length=99

@@ -62,8 +62,7 @@ def getconfig():
 
 def setconfig(key, value):
     if key not in _config:
-        raise KeyError('Key {} not found in config amongst {}'.format(
-            key, _config.keys()))
+        raise KeyError('Key {} not found in config amongst {}'.format(key, _config.keys()))
     _config[key] = value
 
 

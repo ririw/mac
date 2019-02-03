@@ -17,8 +17,7 @@ class Question:
 def get_preprocess_questions(
         clevr_fs, output_fs, split_name, words_ixs=None):
     if not output_fs.exists('{}-questions.pkl'.format(split_name)):
-        _preprocess_questions(
-            clevr_fs, output_fs, split_name, words_ixs)
+        _preprocess_questions(clevr_fs, output_fs, split_name, words_ixs)
 
     questions = []
     with output_fs.open('{}-questions.pkl'.format(split_name), 'rb') as f:

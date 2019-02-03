@@ -3,7 +3,6 @@ all: lint test check
 lint:
 	flake8 src/mac
 	flake8 tests
-	flake8 decompress.py
 
 test:
 	nosetests

@@ -52,10 +52,8 @@ class Check(cli.Application):
         torchvision.models.resnet.resnet101(False)
 
         print('Checking can load elmo...')
-        elmo_options_file = os.path.expanduser(
-            '~/Datasets/elmo_small_options.json')
-        elmo_weights_file = os.path.expanduser(
-            '~/Datasets/elmo_small_weights.hdf5')
+        elmo_options_file = os.path.expanduser('~/Datasets/elmo_small_options.json')
+        elmo_weights_file = os.path.expanduser('~/Datasets/elmo_small_weights.hdf5')
         allennlp.modules.elmo.Elmo(elmo_options_file, elmo_weights_file, 2)
 
         return 0
