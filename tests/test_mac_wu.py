@@ -64,10 +64,10 @@ def test_selective_memory():
         control = torch.randn(batch_size, ctrl_dim)
         target = torch.zeros(batch_size, ctrl_dim)
 
-        control[:batch_size // 2, 0] = 2
-        control[batch_size // 2:, 0] = -2
-        target[:batch_size//2] = ri[:batch_size//2]
-        target[batch_size//2:] = mem[batch_size//2:]
+        control[: batch_size // 2, 0] = 2
+        control[batch_size // 2 :, 0] = -2
+        target[: batch_size // 2] = ri[: batch_size // 2]
+        target[batch_size // 2 :] = mem[batch_size // 2 :]
 
         nextmem = cell(mem, ri, control)
         err = torch.nn.MSELoss()(nextmem, target)

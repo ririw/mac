@@ -13,7 +13,7 @@ def est_direct_inter():
     mem = torch.zeros(batch_size, ctrl_dim)
     kb = torch.zeros(batch_size, ctrl_dim, 14, 14)
     ctrl = torch.zeros(batch_size, ctrl_dim)
-    target = torch.zeros(batch_size, ctrl_dim*2)
+    target = torch.zeros(batch_size, ctrl_dim * 2)
 
     ru = RUCell(ctrl_dim)
 
@@ -25,10 +25,11 @@ def est_direct_inter():
     def err_cb():
         opt.zero_grad()
         ru(mem, kb, ctrl)
-        v = get_saved_locals()['mem_kb_inter_cat'][:, 0, 0, :]
+        v = get_saved_locals()["mem_kb_inter_cat"][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         return err
+
     opt = torch.optim.Adam(ru.parameters(), max_iter=100)
     opt.step(err_cb)
     nose.tools.assert_less(err_cb().item(), 0.1)
@@ -53,7 +54,7 @@ def est_second_inter():
     for i in range(500):
         opt.zero_grad()
         ru(mem, kb, ctrl)
-        v = get_saved_locals()['second_inter'][:, 0, 0, :]
+        v = get_saved_locals()["second_inter"][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         opt.step()
@@ -80,7 +81,7 @@ def est_weighted_control():
     for i in range(500):
         opt.zero_grad()
         ru(mem, kb, ctrl)
-        v = get_saved_locals()['weighted_control'][:, 0, 0, :]
+        v = get_saved_locals()["weighted_control"][:, 0, 0, :]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         opt.step()
@@ -107,7 +108,7 @@ def test_ra():
     for i in range(500):
         opt.zero_grad()
         ru(mem, kb, ctrl)
-        v = get_saved_locals()['attended'][:]
+        v = get_saved_locals()["attended"][:]
         err = torch.nn.functional.mse_loss(v, target)
         err.backward()
         opt.step()

@@ -10,7 +10,7 @@ def test_simple_control_run():
     batch_size, seq_len, ctrl_dim = 17, 31, 7
     prev_ctrl = torch.randn(batch_size, ctrl_dim)
     context_words = torch.randn(batch_size, seq_len, ctrl_dim)
-    question_words = torch.randn(batch_size, ctrl_dim*2)
+    question_words = torch.randn(batch_size, ctrl_dim * 2)
 
     cell = CUCell(ctrl_dim, 3)
     cell(0, prev_ctrl, context_words, question_words)
@@ -20,7 +20,7 @@ def test_simple_control_leakage():
     batch_size, seq_len, ctrl_dim = 17, 31, 7
     prev_ctrl = torch.randn(batch_size, ctrl_dim)
     context_words = torch.randn(batch_size, seq_len, ctrl_dim)
-    question_words = torch.randn(batch_size, ctrl_dim*2)
+    question_words = torch.randn(batch_size, ctrl_dim * 2)
 
     context_words[:, :, 0] = 0
 
@@ -37,14 +37,14 @@ def test_variable_batches():
 
     prev_ctrl = torch.randn(batch_size, ctrl_dim)
     context_words = torch.randn(batch_size, seq_len, ctrl_dim)
-    question_words = torch.randn(batch_size, ctrl_dim*2)
+    question_words = torch.randn(batch_size, ctrl_dim * 2)
     next_ctrl = cell(0, prev_ctrl, context_words, question_words)
     nose.tools.assert_equal(next_ctrl.shape, (batch_size, ctrl_dim))
 
     batch_size = 23
     prev_ctrl = torch.randn(batch_size, ctrl_dim)
     context_words = torch.randn(batch_size, seq_len, ctrl_dim)
-    question_words = torch.randn(batch_size, ctrl_dim*2)
+    question_words = torch.randn(batch_size, ctrl_dim * 2)
     next_ctrl = cell(0, prev_ctrl, context_words, question_words)
     nose.tools.assert_equal(next_ctrl.shape, (batch_size, ctrl_dim))
 
@@ -59,7 +59,7 @@ def test_silly_train():
         opt.zero_grad()
         prev_ctrl = torch.randn(batch_size, ctrl_dim)
         context_words = torch.zeros(batch_size, seq_len, ctrl_dim)
-        question_words = torch.zeros(batch_size, ctrl_dim*2)
+        question_words = torch.zeros(batch_size, ctrl_dim * 2)
         target = torch.zeros(batch_size, ctrl_dim, requires_grad=False)
         for j in range(batch_size):
             question_words[j, -j % ctrl_dim] = 1

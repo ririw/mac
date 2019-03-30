@@ -9,13 +9,17 @@ from mac.datasets import image_preprocess, qn_preprocess
 class TaskDataset(data.Dataset):
     def __init__(self, clevr_fs, output_fs, split):
         self.images = image_preprocess.get_preprocess_images(clevr_fs, output_fs, split)
-        if split == 'train':
+        if split == "train":
             self.questions, word_ix = qn_preprocess.get_preprocess_questions(
-                clevr_fs, output_fs, split)
+                clevr_fs, output_fs, split
+            )
         else:
-            _, word_ix = qn_preprocess.get_preprocess_questions(clevr_fs, output_fs, 'train')
+            _, word_ix = qn_preprocess.get_preprocess_questions(
+                clevr_fs, output_fs, split
+            )
             self.questions, _ = qn_preprocess.get_preprocess_questions(
-                clevr_fs, output_fs, split, word_ix)
+                clevr_fs, output_fs, split, word_ix
+            )
         self.word_ix = word_ix
 
     def __getitem__(self, index):
@@ -36,7 +40,7 @@ class TaskDataset(data.Dataset):
         qn_lengths = np.asarray([len(q) for q in ordered_qns], np.int64)
         qn_words = np.zeros((len(answers), max(qn_lengths)), np.int64)
         for ix, q in enumerate(ordered_qns):
-            qn_words[ix, :qn_lengths[ix]] = q
+            qn_words[ix, : qn_lengths[ix]] = q
 
         answers = torch.from_numpy(answers).to(td)
         images = torch.from_numpy(images).to(td)

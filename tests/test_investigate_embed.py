@@ -5,10 +5,7 @@ import numpy as np
 
 
 def test_embed():
-    x = np.array([
-        [1, 2, 3, 4],
-        [5, 6, 0, 0]
-    ]).T
+    x = np.array([[1, 2, 3, 4], [5, 6, 0, 0]]).T
     x = torch.from_numpy(x)
     a = pack_padded_sequence(x, [4, 2])
     print(len(a))

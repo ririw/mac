@@ -6,7 +6,7 @@ import mac.mac
 
 def test_runs():
     batch_size, recurrence_length, ctrl_dim, seq_len = 7, 11, 5, 13
-    question_words = torch.rand(batch_size, ctrl_dim*2)
+    question_words = torch.rand(batch_size, ctrl_dim * 2)
     image_vec = torch.rand(batch_size, ctrl_dim, 14, 14)
     context_words = torch.rand(batch_size, seq_len, ctrl_dim)
     cell = mac.mac.MACRec(recurrence_length, ctrl_dim)

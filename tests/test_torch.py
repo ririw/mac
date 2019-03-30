@@ -15,7 +15,4 @@ def test_simple() -> None:
         return r
 
     opt.step(err)
-    np.testing.assert_equal(
-        x.detach().numpy().round(3),
-        [0, 0, 0, 0, 0]
-    )
+    np.testing.assert_equal(x.detach().numpy().round(3), [0, 0, 0, 0, 0])
