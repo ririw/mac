@@ -36,11 +36,9 @@ _answers = [
     "yes",
 ]
 
+cuda_flag = literal_eval(os.environ.get("CUDA_DISABLED", "False"))
 _config = {
-    "use_cuda": (
-        torch.cuda.is_available()
-        and not literal_eval(os.environ.get("CUDA_DISABLED", "False"))
-    ),
+    "use_cuda": (torch.cuda.is_available() and not cuda_flag),
     "answer_mapping": {ans: ix for ix, ans in enumerate(_answers)},
     "progress": True,
     "work_limit": None,

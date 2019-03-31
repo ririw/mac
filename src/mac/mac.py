@@ -1,12 +1,14 @@
 import torch
 import torch.nn
-from torch.nn import functional as F
+from torch.nn import functional as func
 from torch.nn.utils import rnn as rnnutils
 
 from mac import debug_helpers
 from mac.debug_helpers import check_shape, save_all_locals
+import numpy as np
 
 
+# noinspection PyUnresolvedReferences
 class MACRec(torch.nn.Module):
     def __init__(self, recurrence_length, ctrl_dim):
         super().__init__()
@@ -59,6 +61,7 @@ class MACRec(torch.nn.Module):
         return output
 
 
+# noinspection PyUnresolvedReferences
 class MACNet(torch.nn.Module):
     def __init__(self, mac: MACRec, total_words):
         super().__init__()
@@ -102,19 +105,23 @@ class MACNet(torch.nn.Module):
         return kb_reduced
 
     def process_qn(self, questions, qn_lens, batch_size):
+        if isinstance(qn_lens, list):
+            qn_lens = torch.from_numpy(np.array(qn_lens, dtype=np.int64))
         debug_helpers.check_shape(questions, (batch_size, None))
         debug_helpers.check_shape(qn_lens, (batch_size,))
 
         qn_tensors = self.embedding(questions)
         debug_helpers.check_shape(qn_tensors, (batch_size, None, self.ctrl_dim))
-        packed_embedded = rnnutils.pack_padded_sequence(qn_tensors, qn_lens)
+        packed_embedded = rnnutils.pack_padded_sequence(
+            qn_tensors, qn_lens, batch_first=True
+        )
 
         h0_c0_size = (2, batch_size, self.ctrl_dim)
         h0 = self.lstm_h0.expand(h0_c0_size).contiguous()
         c0 = self.lstm_c0.expand(h0_c0_size).contiguous()
 
         lstm_out, (hn, _) = self.lstm_processor(packed_embedded, (h0, c0))
-        padded_lstm, _ = rnnutils.pad_packed_sequence(lstm_out)
+        padded_lstm, _ = rnnutils.pad_packed_sequence(lstm_out, batch_first=True)
         proj_lstm = self.lstm_proj(padded_lstm)
 
         hn_concat = torch.cat([hn[0], hn[1]], -1)
@@ -123,6 +130,7 @@ class MACNet(torch.nn.Module):
         return proj_lstm, hn_concat
 
 
+# noinspection PyUnresolvedReferences
 class CUCell(torch.nn.Module):
     def __init__(self, ctrl_dim, recurrence_length):
         super().__init__()
@@ -162,6 +170,7 @@ class CUCell(torch.nn.Module):
         return next_ctrl
 
 
+# noinspection PyUnresolvedReferences
 class RUCell(torch.nn.Module):
     default_image_size = (14, 14)
 
@@ -195,7 +204,7 @@ class RUCell(torch.nn.Module):
         ctrled = torch.einsum("bwhc,bc->bwhc", mem_kb_inter_cat_trf, control)
         attended_flat = self.attn(ctrled).view(batch_size, -1)
         check_shape(attended_flat, (batch_size, 14 * 14))
-        attended = F.softmax(attended_flat, dim=-1).view(batch_size, 14, 14)
+        attended = func.softmax(attended_flat, dim=-1).view(batch_size, 14, 14)
         check_shape(attended, (batch_size, 14, 14))
 
         retrieved = torch.einsum("bwhc,bwh->bc", kb, attended)
@@ -204,6 +213,7 @@ class RUCell(torch.nn.Module):
         return retrieved
 
 
+# noinspection PyUnresolvedReferences
 class WUCell(torch.nn.Module):
     def __init__(self, ctrl_dim, use_prev_control=False, gate_mem=True):
         super().__init__()
@@ -254,6 +264,7 @@ class WUCell(torch.nn.Module):
         return m_next
 
 
+# noinspection PyUnresolvedReferences
 class OutputCell(torch.nn.Module):
     def __init__(self, ctrl_dim, out_dim=28):
         super().__init__()

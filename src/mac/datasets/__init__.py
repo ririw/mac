@@ -6,6 +6,7 @@ from mac import config
 from mac.datasets import image_preprocess, qn_preprocess
 
 
+# noinspection PyUnresolvedReferences
 class TaskDataset(data.Dataset):
     def __init__(self, clevr_fs, output_fs, split):
         self.images = image_preprocess.get_preprocess_images(clevr_fs, output_fs, split)
@@ -32,7 +33,7 @@ class TaskDataset(data.Dataset):
             qns_ixs.append(qn.qn_ixs)
 
         len_ord = np.argsort([len(q) for q in qns_ixs])[::-1]
-        answers = np.asarray(answers)
+        answers = np.asarray(answers)[len_ord]
         img_ixs = np.asarray(img_ixs)[len_ord]
         images = self.images[img_ixs]
         ordered_qns = [qns_ixs[i] for i in len_ord]
@@ -50,4 +51,4 @@ class TaskDataset(data.Dataset):
         return images, qns, qn_lens, answers
 
     def __len__(self):
-        return self.images.shape[0]
+        return len(self.questions)

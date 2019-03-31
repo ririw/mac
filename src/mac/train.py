@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 import tensorboardX
 import torch
@@ -16,6 +17,7 @@ from mac import utils, datasets, mac, config
 @utils.MAC.subcommand("train")
 class Train(cli.Application):
     def main(self, clevr_dir, preproc_dir, results_loc, log_loc=None):
+        logging.basicConfig(level=logging.INFO)
         utils.cuda_message()
         np.printoptions(linewidth=139)
 
@@ -24,7 +26,8 @@ class Train(cli.Application):
 
         dataset = datasets.TaskDataset(clevr_fs, preproc_fs, "train")
         total_words = len(dataset.word_ix) + 1
-        sampler = data.BatchSampler(data.SequentialSampler(dataset), 32, False)
+        logging.info("Total words: %s", total_words)
+        sampler = data.BatchSampler(data.RandomSampler(dataset), 32, False)
 
         net = mac.MACNet(mac.MACRec(12, 512), total_words).to(config.torch_device())
         opt = torch.optim.Adam(net.parameters())
